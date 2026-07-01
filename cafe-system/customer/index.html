@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Menu</title>
+  <link rel="stylesheet" href="/customer/style.css" />
+</head>
+<body>
+
+  <div id="invalid-screen" class="screen hidden">
+    <div class="invalid-box">
+      <div class="invalid-icon">⚠</div>
+      <h2 data-en="Invalid QR Code" data-bn="অবৈধ QR কোড">Invalid QR Code</h2>
+      <p data-en="Please scan the QR code on your table." data-bn="অনুগ্রহ করে আপনার টেবিলের QR কোড স্ক্যান করুন।">Please scan the QR code on your table.</p>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+
+    <header id="top-bar">
+      <div class="top-bar-inner">
+        <div class="table-badge">
+          <span class="table-label" data-en="Table" data-bn="টেবিল">Table</span>
+          <span id="table-name-display"></span>
+        </div>
+        <button class="lang-btn" id="lang-toggle" onclick="toggleLang()">বাংলা</button>
+      </div>
+    </header>
+
+    <div id="main-content">
+
+      <section id="menu-section">
+        <div class="section-header">
+          <h1 data-en="Our Menu" data-bn="আমাদের মেনু">Our Menu</h1>
+        </div>
+
+        <div id="category-tabs"></div>
+        <div id="menu-grid"></div>
+      </section>
+
+      <section id="cart-section" class="hidden">
+        <div class="section-header">
+          <h1 data-en="Your Order" data-bn="আপনার অর্ডার">Your Order</h1>
+        </div>
+        <div id="cart-items"></div>
+        <div class="cart-note-wrap">
+          <label data-en="Special instructions (optional)" data-bn="বিশেষ নির্দেশনা (ঐচ্ছিক)">Special instructions</label>
+          <textarea id="order-note" rows="2" placeholder="e.g. No sugar, extra spicy..."></textarea>
+        </div>
+        <div class="cart-total-row">
+          <span data-en="Total" data-bn="মোট">Total</span>
+          <span id="cart-total-display">৳0</span>
+        </div>
+        <button class="btn-place-order" id="btn-place-order" onclick="placeOrder()">
+          <span data-en="Place Order" data-bn="অর্ডার দিন">Place Order</span>
+        </button>
+      </section>
+
+      <section id="status-section" class="hidden">
+        <div class="section-header">
+          <h1 data-en="Order Status" data-bn="অর্ডারের অবস্থা">Order Status</h1>
+        </div>
+        <div id="active-orders-list"></div>
+        <p class="status-note" data-en="Pay at the counter when ready." data-bn="প্রস্তুত হলে কাউন্টারে পেমেন্ট করুন।">Pay at the counter when ready.</p>
+      </section>
+
+    </div>
+
+    <nav id="bottom-nav">
+      <button class="nav-btn active" data-tab="menu" onclick="switchTab('menu')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18M3 9h18M3 15h18M3 21h18"/></svg>
+        <span data-en="Menu" data-bn="মেনু">Menu</span>
+      </button>
+      <button class="nav-btn" data-tab="cart" onclick="switchTab('cart')">
+        <div class="cart-icon-wrap">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <span id="cart-badge" class="cart-badge hidden">0</span>
+        </div>
+        <span data-en="Order" data-bn="অর্ডার">Order</span>
+      </button>
+      <button class="nav-btn" data-tab="status" onclick="switchTab('status')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span data-en="Status" data-bn="অবস্থা">Status</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <div id="modal-overlay" class="modal-overlay hidden" onclick="closeModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <img id="modal-img" src="" alt="" />
+      <div class="modal-info">
+        <h2 id="modal-name"></h2>
+        <p id="modal-desc"></p>
+        <div class="modal-bottom">
+          <span id="modal-price"></span>
+          <div class="qty-ctrl">
+            <button onclick="modalQtyChange(-1)">−</button>
+            <span id="modal-qty">1</span>
+            <button onclick="modalQtyChange(1)">+</button>
+          </div>
+          <button class="btn-add-modal" onclick="addFromModal()">
+            <span data-en="Add to order" data-bn="অর্ডারে যোগ করুন">Add to order</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/customer/app.js"></script>
+</body>
+</html>

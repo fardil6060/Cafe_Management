@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sales History — Cafe Admin</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+  <style>
+    .sales-top { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .period-tabs { display:flex; gap:6px; }
+    .period-tab {
+      padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600;
+      border:1.5px solid var(--border); background:var(--surface);
+      color:var(--text-2); cursor:pointer; transition:all .15s;
+    }
+    .period-tab.active { background:var(--brand); border-color:var(--brand); color:#fff; }
+    .date-range { display:flex; gap:8px; align-items:center; }
+    .date-range input {
+      padding:6px 10px; border:1.5px solid var(--border); border-radius:var(--radius-sm);
+      font-size:13px; font-family:var(--font); outline:none; color:var(--text-1);
+      background:var(--surface);
+    }
+    .date-range input:focus { border-color:var(--brand); }
+    .bar-chart { display:flex; align-items:flex-end; gap:6px; height:140px; padding:0 4px; }
+    .bar-col { display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; min-width:0; }
+    .bar-fill {
+      width:100%; background:var(--brand); border-radius:4px 4px 0 0;
+      transition:height .3s; min-height:2px; position:relative;
+    }
+    .bar-fill:hover { background:var(--brand-hover); }
+    .bar-fill:hover::after {
+      content:attr(data-tip);
+      position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%);
+      background:var(--text-1); color:#fff; font-size:11px; font-weight:600;
+      padding:3px 8px; border-radius:4px; white-space:nowrap; pointer-events:none; z-index:10;
+    }
+    .bar-label { font-size:10px; color:var(--text-3); text-align:center; line-height:1.2; }
+    .bestseller-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+    .bestseller-row:last-child { border-bottom:none; }
+    .bestseller-rank { width:24px; height:24px; border-radius:50%; background:var(--brand-light); color:var(--brand); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .bestseller-name { flex:1; font-size:13.5px; font-weight:500; }
+    .bestseller-bar-wrap { width:80px; height:6px; background:var(--border); border-radius:4px; overflow:hidden; }
+    .bestseller-bar { height:100%; background:var(--brand); border-radius:4px; }
+    .bestseller-qty { font-size:12px; font-weight:600; color:var(--text-2); min-width:36px; text-align:right; }
+    .summary-chips { display:flex; gap:10px; flex-wrap:wrap; }
+    .chip { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 16px; display:flex; flex-direction:column; gap:2px; min-width:130px; }
+    .chip-val   { font-size:20px; font-weight:700; }
+    .chip-label { font-size:11px; color:var(--text-3); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  </style>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg></div>
+      <div><div class="sidebar-brand-text">Cafe Manager</div><div class="sidebar-brand-sub">Admin Panel</div></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main</div>
+      <a href="/dashboard.html" class="nav-item" data-page="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+      <a href="/orders.html" class="nav-item" data-page="orders.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/></svg>Orders<span class="nav-badge hidden" id="pending-orders-badge">0</span></a>
+      <a href="/tables.html" class="nav-item" data-page="tables.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M6 12v6M18 12v6M4 18h5M15 18h5"/></svg>Tables</a>
+      <a href="/payment.html" class="nav-item" data-page="payment.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Payment</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Manage</div>
+      <a href="/menu-editor.html" class="nav-item" data-page="menu-editor.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Menu Editor</a>
+      <a href="/inventory.html" class="nav-item" data-page="inventory.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Inventory</a>
+      <a href="/customers.html" class="nav-item" data-page="customers.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Customers</a>
+      <a href="/sales.html" class="nav-item" data-page="sales.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>Sales History</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><div class="sidebar-avatar" id="sidebar-avatar">A</div><span class="sidebar-username" id="sidebar-username">admin</span></div>
+      <button class="btn-signout" onclick="signOut()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <div class="topbar">
+      <span class="topbar-title" id="page-title">Sales History</span>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbar-date"></span>
+        <div class="date-range">
+          <input type="date" id="date-from" onchange="loadHistory()" />
+          <span class="text-muted">to</span>
+          <input type="date" id="date-to" onchange="loadHistory()" />
+          <button class="btn btn-secondary btn-sm" onclick="clearDates()">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- Summary chips -->
+      <div class="summary-chips" id="summary-chips"></div>
+
+      <!-- Charts row -->
+      <div class="sales-top">
+        <!-- Revenue chart -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Revenue Over Time</span>
+            <div class="period-tabs">
+              <button class="period-tab active" onclick="setPeriod('weekly',this)">Weekly</button>
+              <button class="period-tab" onclick="setPeriod('monthly',this)">Monthly</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="bar-chart" id="revenue-chart">
+              <div style="color:var(--text-3);font-size:13px;width:100%;text-align:center;padding:40px 0">Loading...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Best sellers -->
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Best Sellers (Today)</span></div>
+          <div class="panel-body" id="bestsellers-body">
+            <div style="color:var(--text-3);font-size:13px;text-align:center;padding:40px 0">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table breakdown -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Revenue by Table</span>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr><th>Table</th><th>Orders</th><th>Revenue</th></tr>
+          </thead>
+          <tbody id="table-breakdown-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Full history -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Transaction History</span>
+          <span class="text-sm text-muted" id="history-count"></span>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Sale #</th>
+              <th>Order</th>
+              <th>Table</th>
+              <th>Customer</th>
+              <th>Total</th>
+              <th>Date & Time</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody"></tbody>
+        </table>
+        <div style="padding:14px 16px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center">
+          <button class="btn btn-secondary btn-sm" id="btn-prev" onclick="changePage(-1)">← Prev</button>
+          <span class="text-sm text-muted" id="page-info">Page 1</span>
+          <button class="btn btn-secondary btn-sm" id="btn-next" onclick="changePage(1)">Next →</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="admin-toast"></div>
+<script src="/js/core.js"></script>
+<script>
+  adminPageInit('Sales History');
+
+  let period     = 'weekly';
+  let page       = 0;
+  const pageSize = 20;
+  let totalSales = 0;
+
+  async function loadAll() {
+    await Promise.all([
+      loadSummary(),
+      loadRevenuChart(),
+      loadBestSellers(),
+      loadTableBreakdown(),
+      loadHistory()
+    ]);
+  }
+
+  async function loadSummary() {
+    try {
+      const today   = await apiGet('/api/sales/summary');
+      const history = await apiGet('/api/sales/history?limit=1000');
+      const allTime = history.reduce((s,r) => s + (r.total||0), 0);
+      const customers = await apiGet('/api/customers');
+
+      document.getElementById('summary-chips').innerHTML = `
+        <div class="chip"><div class="chip-val brand">${taka(today.total)}</div><div class="chip-label">Today's Revenue</div></div>
+        <div class="chip"><div class="chip-val">${today.count}</div><div class="chip-label">Today's Sales</div></div>
+        <div class="chip"><div class="chip-val">${taka(allTime)}</div><div class="chip-label">All-Time Revenue</div></div>
+        <div class="chip"><div class="chip-val">${history.length}</div><div class="chip-label">Total Transactions</div></div>
+        <div class="chip"><div class="chip-val">${customers.length}</div><div class="chip-label">Customers</div></div>
+      `;
+    } catch {}
+  }
+
+  function setPeriod(p, el) {
+    period = p;
+    document.querySelectorAll('.period-tab').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    loadRevenuChart();
+  }
+
+  async function loadRevenuChart() {
+    try {
+      const data = await apiGet(`/api/sales/revenue?period=${period}`);
+      const chart = document.getElementById('revenue-chart');
+
+      if (!data.length) {
+        chart.innerHTML = `<div style="color:var(--text-3);font-size:13px;width:100%;text-align:center;padding:40px 0">No data yet</div>`;
+        return;
+      }
+
+      const reversed = [...data].reverse();
+      const maxRev   = Math.max(...reversed.map(d => d.revenue || 0), 1);
+
+      chart.innerHTML = reversed.map(d => {
+        const pct   = Math.max(4, ((d.revenue || 0) / maxRev) * 100);
+        const label = period === 'weekly'
+          ? new Date(d.period).toLocaleDateString('en', { weekday:'short', month:'short', day:'numeric' })
+          : d.period;
+        return `
+          <div class="bar-col">
+            <div class="bar-fill" style="height:${pct}%" data-tip="${taka(d.revenue)} (${d.orders} orders)"></div>
+            <div class="bar-label">${label}</div>
+          </div>`;
+      }).join('');
+    } catch {}
+  }
+
+  async function loadBestSellers() {
+    try {
+      const summary = await apiGet('/api/sales/summary');
+      const sellers = summary.best_sellers || [];
+      const el      = document.getElementById('bestsellers-body');
+      const maxQty  = sellers[0]?.total_qty || 1;
+
+      if (!sellers.length) {
+        el.innerHTML = `<div style="color:var(--text-3);font-size:13px;text-align:center;padding:40px 0">No sales today yet</div>`;
+        return;
+      }
+
+      el.innerHTML = sellers.map((s, i) => `
+        <div class="bestseller-row">
+          <div class="bestseller-rank">${i+1}</div>
+          <div class="bestseller-name">${s.item_name}</div>
+          <div class="bestseller-bar-wrap">
+            <div class="bestseller-bar" style="width:${(s.total_qty/maxQty)*100}%"></div>
+          </div>
+          <div class="bestseller-qty">${s.total_qty} sold</div>
+          <div style="font-size:12px;font-weight:600;color:var(--brand);min-width:60px;text-align:right">${taka(s.revenue)}</div>
+        </div>`).join('');
+    } catch {}
+  }
+
+  async function loadTableBreakdown() {
+    try {
+      const from = document.getElementById('date-from').value;
+      const to   = document.getElementById('date-to').value;
+      let url    = '/api/sales/by-table';
+      if (from || to) url += `?${from?'from='+from:''}${from&&to?'&':''}${to?'to='+to:''}`;
+
+      const data = await apiGet(url);
+      const tbody = document.getElementById('table-breakdown-tbody');
+      if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:30px;color:var(--text-3)">No data for selected period</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map(row => `
+        <tr>
+          <td style="font-weight:600">${row.table_name}</td>
+          <td>${row.total_orders}</td>
+          <td style="font-weight:700;color:var(--brand)">${taka(row.revenue)}</td>
+        </tr>`).join('');
+    } catch {}
+  }
+
+  async function loadHistory() {
+    try {
+      const from   = document.getElementById('date-from').value;
+      const to     = document.getElementById('date-to').value;
+      const offset = page * pageSize;
+      let url      = `/api/sales/history?limit=${pageSize}&offset=${offset}`;
+      if (from) url += `&from=${from}`;
+      if (to)   url += `&to=${to}`;
+
+      const data  = await apiGet(url);
+      totalSales  = data.length;
+
+      const tbody = document.getElementById('history-tbody');
+      document.getElementById('history-count').textContent = `${data.length} records`;
+
+      if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-3)">No transactions found</td></tr>`;
+      } else {
+        tbody.innerHTML = data.map(s => `
+          <tr>
+            <td class="font-mono">#${s.id}</td>
+            <td class="font-mono">#${s.order_id}</td>
+            <td>${s.table_name}</td>
+            <td>${s.customer_name || '<span class="text-muted">—</span>'}</td>
+            <td style="font-weight:700;color:var(--brand)">${taka(s.total)}</td>
+            <td class="text-muted text-sm">${formatDateTime(s.paid_at)}</td>
+          </tr>`).join('');
+      }
+
+      document.getElementById('page-info').textContent = `Page ${page+1}`;
+      document.getElementById('btn-prev').disabled = page === 0;
+      document.getElementById('btn-next').disabled = data.length < pageSize;
+
+      loadTableBreakdown();
+    } catch {}
+  }
+
+  function changePage(dir) {
+    page = Math.max(0, page + dir);
+    loadHistory();
+  }
+
+  function clearDates() {
+    document.getElementById('date-from').value = '';
+    document.getElementById('date-to').value   = '';
+    page = 0;
+    loadHistory();
+    loadTableBreakdown();
+  }
+
+  // Set default date range to today
+  document.getElementById('date-from').value = todayStr();
+  document.getElementById('date-to').value   = todayStr();
+
+  loadAll();
+</script>
+</body>
+</html>

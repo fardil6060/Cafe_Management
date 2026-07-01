@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Orders — Cafe Admin</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+  <style>
+    .orders-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .filter-tabs { display:flex; gap:6px; }
+    .filter-tab {
+      padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600;
+      border:1.5px solid var(--border); background:var(--surface);
+      color:var(--text-2); cursor:pointer; transition:all .15s;
+    }
+    .filter-tab.active { background:var(--brand); border-color:var(--brand); color:#fff; }
+    .order-cards { display:flex; flex-direction:column; gap:12px; }
+    .order-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-md); overflow:hidden;
+      box-shadow:var(--shadow-sm); transition:box-shadow .15s;
+    }
+    .order-card:hover { box-shadow:var(--shadow-md); }
+    .order-card.is-pending { border-left:3px solid var(--brand); }
+    .order-card-head {
+      display:flex; align-items:center; gap:12px;
+      padding:14px 18px; border-bottom:1px solid var(--border);
+      flex-wrap:wrap;
+    }
+    .order-meta { flex:1; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+    .order-num { font-size:15px; font-weight:700; }
+    .order-table-tag {
+      background:var(--surface-2); border:1px solid var(--border);
+      border-radius:6px; padding:3px 10px; font-size:12px; font-weight:600;
+    }
+    .order-time { font-size:12px; color:var(--text-3); }
+    .order-note-tag {
+      font-size:11px; color:var(--amber); background:var(--amber-bg);
+      border-radius:4px; padding:2px 8px;
+    }
+    .order-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .order-items-list { padding:14px 18px; display:flex; flex-direction:column; gap:6px; }
+    .order-item-row { display:flex; justify-content:space-between; font-size:13.5px; }
+    .order-item-name { color:var(--text-1); }
+    .order-item-qty { color:var(--text-3); font-size:12px; margin-left:6px; }
+    .order-item-price { font-weight:600; color:var(--brand); }
+    .order-card-foot {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:12px 18px; background:var(--surface-2);
+      border-top:1px solid var(--border);
+    }
+    .order-total { font-size:15px; font-weight:700; }
+    .status-flow { display:flex; gap:6px; align-items:center; }
+    .step-btn {
+      padding:6px 12px; border-radius:var(--radius-sm); font-size:12px;
+      font-weight:600; border:none; cursor:pointer; font-family:var(--font);
+      transition:opacity .15s;
+    }
+    .step-btn:disabled { opacity:.4; cursor:default; }
+    .step-pending   { background:var(--amber-bg);  color:var(--amber);  }
+    .step-preparing { background:var(--blue-bg);   color:var(--blue);   }
+    .step-ready     { background:var(--green-bg);  color:var(--green);  }
+    .step-served    { background:var(--purple-bg); color:var(--purple); }
+    .step-cancel    { background:var(--red-bg);    color:var(--red);    }
+    .notif-banner {
+      background:var(--brand-light); border:1px solid var(--brand-muted);
+      border-radius:var(--radius-sm); padding:10px 16px;
+      display:flex; align-items:center; gap:10px; font-size:13px;
+      color:var(--brand); font-weight:500;
+    }
+    .notif-banner svg { flex-shrink:0; }
+    .empty-orders { text-align:center; padding:60px 20px; color:var(--text-2); }
+    .sound-toggle {
+      display:flex; align-items:center; gap:6px; font-size:12px;
+      color:var(--text-2); cursor:pointer; user-select:none;
+    }
+    .sound-toggle input { cursor:pointer; }
+  </style>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
+      </div>
+      <div><div class="sidebar-brand-text">Cafe Manager</div><div class="sidebar-brand-sub">Admin Panel</div></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main</div>
+      <a href="/dashboard.html" class="nav-item" data-page="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+      <a href="/orders.html" class="nav-item" data-page="orders.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/></svg>Orders<span class="nav-badge hidden" id="pending-orders-badge">0</span></a>
+      <a href="/tables.html" class="nav-item" data-page="tables.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M6 12v6M18 12v6M4 18h5M15 18h5"/></svg>Tables</a>
+      <a href="/payment.html" class="nav-item" data-page="payment.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Payment</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Manage</div>
+      <a href="/menu-editor.html" class="nav-item" data-page="menu-editor.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Menu Editor</a>
+      <a href="/inventory.html" class="nav-item" data-page="inventory.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Inventory</a>
+      <a href="/customers.html" class="nav-item" data-page="customers.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Customers</a>
+      <a href="/sales.html" class="nav-item" data-page="sales.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>Sales History</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><div class="sidebar-avatar" id="sidebar-avatar">A</div><span class="sidebar-username" id="sidebar-username">admin</span></div>
+      <button class="btn-signout" onclick="signOut()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <div class="topbar">
+      <span class="topbar-title" id="page-title">Orders</span>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbar-date"></span>
+        <label class="sound-toggle">
+          <input type="checkbox" id="sound-toggle" checked /> Alert sound
+        </label>
+        <button class="btn btn-secondary btn-sm" onclick="loadOrders()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div id="new-order-banner" class="notif-banner hidden">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="banner-text">New order received!</span>
+        <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="dismissBanner()">Dismiss</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="orders-toolbar">
+            <div class="filter-tabs" id="filter-tabs">
+              <button class="filter-tab active" data-status="active" onclick="setFilter('active',this)">Active</button>
+              <button class="filter-tab" data-status="pending"   onclick="setFilter('pending',this)">Pending</button>
+              <button class="filter-tab" data-status="preparing" onclick="setFilter('preparing',this)">Preparing</button>
+              <button class="filter-tab" data-status="ready"     onclick="setFilter('ready',this)">Ready</button>
+              <button class="filter-tab" data-status="served"    onclick="setFilter('served',this)">Served</button>
+              <button class="filter-tab" data-status="paid"      onclick="setFilter('paid',this)">Paid</button>
+              <button class="filter-tab" data-status="all"       onclick="setFilter('all',this)">All</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="order-cards" id="order-cards">
+            <div class="empty-orders">Loading orders...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="admin-toast"></div>
+
+<script src="/js/core.js"></script>
+<script>
+  adminPageInit('Orders');
+
+  let currentFilter = 'active';
+  let knownOrderIds = new Set();
+  let pollTimer = null;
+
+  function setFilter(status, el) {
+    currentFilter = status;
+    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    loadOrders();
+  }
+
+  async function loadOrders() {
+    try {
+      let url = '/api/orders';
+      if (currentFilter === 'active') {
+        url += '?status=pending,preparing,ready,served';
+      } else if (currentFilter !== 'all') {
+        url += `?status=${currentFilter}`;
+      }
+
+      const orders = await apiGet(url);
+
+      // Detect new orders for notification
+      const newIds = orders.filter(o => o.status === 'pending' && !knownOrderIds.has(o.id));
+      if (newIds.length && knownOrderIds.size > 0) {
+        showNewOrderBanner(newIds.length);
+        if (document.getElementById('sound-toggle').checked) playBeep();
+      }
+      orders.forEach(o => knownOrderIds.add(o.id));
+
+      renderOrders(orders);
+    } catch (err) {
+      showToast('Failed to load orders', 'error');
+    }
+  }
+
+  function renderOrders(orders) {
+    const container = document.getElementById('order-cards');
+    if (!orders.length) {
+      container.innerHTML = `<div class="empty-orders">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg>
+        <p style="margin-top:12px">No orders found</p>
+      </div>`;
+      return;
+    }
+
+    container.innerHTML = orders.map(order => buildOrderCard(order)).join('');
+  }
+
+  function buildOrderCard(order) {
+    const isPending = order.status === 'pending';
+    const items = order.items || [];
+
+    const statusButtons = buildStatusButtons(order);
+
+    return `
+    <div class="order-card ${isPending ? 'is-pending' : ''}" id="order-card-${order.id}">
+      <div class="order-card-head">
+        <div class="order-meta">
+          <span class="order-num">#${order.id}</span>
+          <span class="order-table-tag">${order.table_name}</span>
+          ${statusBadge(order.status)}
+          <span class="order-time">${formatTime(order.created_at)}</span>
+          ${order.note ? `<span class="order-note-tag">📝 ${order.note}</span>` : ''}
+        </div>
+        <div class="order-actions">
+          ${statusButtons}
+          <button class="btn btn-danger btn-sm" onclick="cancelOrder(${order.id})"
+            ${['paid','cancelled'].includes(order.status) ? 'disabled' : ''}>Cancel</button>
+        </div>
+      </div>
+      <div class="order-items-list">
+        ${items.map(item => `
+          <div class="order-item-row">
+            <span class="order-item-name">${item.item_name}<span class="order-item-qty">× ${item.quantity}</span></span>
+            <span class="order-item-price">${taka(item.price * item.quantity)}</span>
+          </div>`).join('')}
+      </div>
+      <div class="order-card-foot">
+        <span class="text-muted text-sm">Updated ${formatTime(order.updated_at)}</span>
+        <span class="order-total">${taka(order.total)}</span>
+      </div>
+    </div>`;
+  }
+
+  function buildStatusButtons(order) {
+    const flow = ['pending','preparing','ready','served'];
+    const idx  = flow.indexOf(order.status);
+    if (idx === -1) return '';
+
+    const next = flow[idx + 1];
+    if (!next) return '';
+
+    const labels = { preparing:'Mark Preparing', ready:'Mark Ready', served:'Mark Served' };
+    const cls    = { preparing:'step-preparing', ready:'step-ready', served:'step-served' };
+
+    return `<button class="step-btn ${cls[next]}" onclick="updateStatus(${order.id},'${next}')">${labels[next]}</button>`;
+  }
+
+  async function updateStatus(orderId, status) {
+    try {
+      await apiPut(`/api/orders/${orderId}/status`, { status });
+      showToast(`Order #${orderId} → ${status}`, 'success');
+      loadOrders();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  async function cancelOrder(orderId) {
+    confirmAction(`Cancel order #${orderId}?`, async () => {
+      try {
+        await apiPut(`/api/orders/${orderId}/status`, { status: 'cancelled' });
+        showToast(`Order #${orderId} cancelled`);
+        loadOrders();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
+  function showNewOrderBanner(count) {
+    const banner = document.getElementById('new-order-banner');
+    document.getElementById('banner-text').textContent =
+      `${count} new order${count > 1 ? 's' : ''} received!`;
+    banner.classList.remove('hidden');
+  }
+
+  function dismissBanner() {
+    document.getElementById('new-order-banner').classList.add('hidden');
+  }
+
+  function playBeep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.6);
+    } catch {}
+  }
+
+  loadOrders();
+  pollTimer = setInterval(loadOrders, 12000);
+</script>
+</body>
+</html>

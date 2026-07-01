@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory — Cafe Admin</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+  <style>
+    .inv-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .filter-tabs { display:flex; gap:6px; }
+    .filter-tab {
+      padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600;
+      border:1.5px solid var(--border); background:var(--surface);
+      color:var(--text-2); cursor:pointer; transition:all .15s;
+    }
+    .filter-tab.active { background:var(--brand); border-color:var(--brand); color:#fff; }
+    .stock-bar-wrap { width:100%; height:6px; background:var(--border); border-radius:4px; overflow:hidden; }
+    .stock-bar { height:100%; border-radius:4px; transition:width .3s; }
+    .stock-bar.high   { background:var(--green); }
+    .stock-bar.medium { background:#F59E0B; }
+    .stock-bar.low    { background:var(--red); }
+    .stock-bar.zero   { background:var(--text-3); width:100% !important; }
+    .qty-input {
+      width:70px; padding:5px 8px; border:1.5px solid var(--border);
+      border-radius:var(--radius-sm); font-size:13px; font-family:var(--font);
+      text-align:center; outline:none;
+    }
+    .qty-input:focus { border-color:var(--brand); }
+    .restock-row { display:flex; gap:6px; align-items:center; }
+    .alert-banner {
+      background:var(--red-bg); border:1px solid #FCA5A5; border-radius:var(--radius-sm);
+      padding:12px 16px; display:flex; align-items:center; gap:10px;
+      font-size:13px; color:var(--red); font-weight:500;
+    }
+    .summary-chips { display:flex; gap:10px; flex-wrap:wrap; }
+    .chip {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-sm); padding:10px 16px;
+      display:flex; flex-direction:column; gap:2px; min-width:120px;
+    }
+    .chip-val  { font-size:20px; font-weight:700; }
+    .chip-label{ font-size:11px; color:var(--text-3); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  </style>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg></div>
+      <div><div class="sidebar-brand-text">Cafe Manager</div><div class="sidebar-brand-sub">Admin Panel</div></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main</div>
+      <a href="/dashboard.html" class="nav-item" data-page="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+      <a href="/orders.html" class="nav-item" data-page="orders.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/></svg>Orders<span class="nav-badge hidden" id="pending-orders-badge">0</span></a>
+      <a href="/tables.html" class="nav-item" data-page="tables.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M6 12v6M18 12v6M4 18h5M15 18h5"/></svg>Tables</a>
+      <a href="/payment.html" class="nav-item" data-page="payment.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Payment</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Manage</div>
+      <a href="/menu-editor.html" class="nav-item" data-page="menu-editor.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Menu Editor</a>
+      <a href="/inventory.html" class="nav-item" data-page="inventory.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Inventory</a>
+      <a href="/customers.html" class="nav-item" data-page="customers.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Customers</a>
+      <a href="/sales.html" class="nav-item" data-page="sales.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>Sales History</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><div class="sidebar-avatar" id="sidebar-avatar">A</div><span class="sidebar-username" id="sidebar-username">admin</span></div>
+      <button class="btn-signout" onclick="signOut()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <div class="topbar">
+      <span class="topbar-title" id="page-title">Inventory</span>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbar-date"></span>
+        <button class="btn btn-secondary btn-sm" onclick="load()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- Alert banner -->
+      <div id="low-stock-banner" class="alert-banner hidden">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="low-stock-banner-text"></span>
+      </div>
+
+      <!-- Summary chips -->
+      <div class="summary-chips" id="summary-chips"></div>
+
+      <!-- Main table -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="inv-toolbar">
+            <div class="filter-tabs">
+              <button class="filter-tab active" onclick="setFilter('all',this)">All Items</button>
+              <button class="filter-tab" onclick="setFilter('tracked',this)">Tracked</button>
+              <button class="filter-tab" onclick="setFilter('low',this)">Low Stock</button>
+              <button class="filter-tab" onclick="setFilter('out',this)">Out of Stock</button>
+            </div>
+            <div class="search-bar" style="margin-left:auto">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="inv-search" placeholder="Search items..." oninput="renderTable()" />
+            </div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th style="width:160px">Level</th>
+              <th>Status</th>
+              <th>Restock</th>
+            </tr>
+          </thead>
+          <tbody id="inv-tbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Restock Modal -->
+<div class="modal-backdrop hidden" id="restock-modal" onclick="closeModalOnBackdrop(event,'restock-modal')">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <span class="modal-title">Restock Item</span>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('restock-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;font-weight:600;margin-bottom:4px" id="restock-item-name"></p>
+      <p class="text-sm text-muted" id="restock-current"></p>
+      <div class="field-group" style="margin-top:14px">
+        <label>Set new stock quantity</label>
+        <input type="number" id="restock-qty" min="0" placeholder="e.g. 100" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('restock-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmRestock()">Update Stock</button>
+    </div>
+  </div>
+</div>
+
+<div id="admin-toast"></div>
+<script src="/js/core.js"></script>
+<script>
+  adminPageInit('Inventory');
+
+  let allItems    = [];
+  let currentFilter = 'all';
+  let restockItemId = null;
+
+  async function load() {
+    try {
+      allItems = await apiGet('/api/inventory');
+      renderSummary();
+      renderTable();
+      checkLowStock();
+    } catch { showToast('Failed to load inventory', 'error'); }
+  }
+
+  function renderSummary() {
+    const tracked  = allItems.filter(i => i.track_stock);
+    const low      = allItems.filter(i => i.track_stock && i.stock_qty > 0 && i.stock_qty <= 10);
+    const out      = allItems.filter(i => i.track_stock && i.stock_qty <= 0);
+    const available= allItems.filter(i => i.is_available);
+
+    document.getElementById('summary-chips').innerHTML = `
+      <div class="chip"><div class="chip-val">${allItems.length}</div><div class="chip-label">Total Items</div></div>
+      <div class="chip"><div class="chip-val">${available.length}</div><div class="chip-label">On Menu</div></div>
+      <div class="chip"><div class="chip-val">${tracked.length}</div><div class="chip-label">Stock Tracked</div></div>
+      <div class="chip"><div class="chip-val" style="color:var(--amber)">${low.length}</div><div class="chip-label">Low Stock</div></div>
+      <div class="chip"><div class="chip-val" style="color:var(--red)">${out.length}</div><div class="chip-label">Out of Stock</div></div>
+    `;
+  }
+
+  function checkLowStock() {
+    const low = allItems.filter(i => i.track_stock && i.stock_qty <= 10);
+    const banner = document.getElementById('low-stock-banner');
+    if (low.length) {
+      document.getElementById('low-stock-banner-text').textContent =
+        `${low.length} item${low.length>1?'s':''} running low or out of stock: ${low.map(i=>i.name_en).join(', ')}`;
+      banner.classList.remove('hidden');
+    } else {
+      banner.classList.add('hidden');
+    }
+  }
+
+  function setFilter(f, el) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    renderTable();
+  }
+
+  function renderTable() {
+    const search = document.getElementById('inv-search').value.toLowerCase();
+    let items = [...allItems];
+
+    if (currentFilter === 'tracked') items = items.filter(i => i.track_stock);
+    if (currentFilter === 'low')     items = items.filter(i => i.track_stock && i.stock_qty > 0 && i.stock_qty <= 10);
+    if (currentFilter === 'out')     items = items.filter(i => i.track_stock && i.stock_qty <= 0);
+    if (search) items = items.filter(i => i.name_en.toLowerCase().includes(search) || i.category_name.toLowerCase().includes(search));
+
+    const tbody = document.getElementById('inv-tbody');
+    if (!items.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-3)">No items found.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = items.map(item => {
+      const tracked = item.track_stock;
+      const qty     = item.stock_qty;
+      const level   = !tracked ? null : qty <= 0 ? 'zero' : qty <= 10 ? 'low' : qty <= 30 ? 'medium' : 'high';
+      const pct     = !tracked ? 0 : Math.min(100, (qty / 100) * 100);
+
+      return `<tr>
+        <td>
+          <div style="font-weight:600">${item.name_en}</div>
+          <div style="font-size:11px;color:var(--text-3)">${item.name_bn}</div>
+        </td>
+        <td class="text-muted">${item.category_name}</td>
+        <td style="font-weight:600;color:var(--brand)">৳${item.price}</td>
+        <td>
+          ${tracked
+            ? `<span style="font-weight:700;font-size:15px;color:${qty<=0?'var(--red)':qty<=10?'var(--amber)':'var(--text-1)'}">${qty}</span>`
+            : `<span class="text-muted text-sm">Not tracked</span>`}
+        </td>
+        <td>
+          ${tracked ? `
+            <div class="stock-bar-wrap">
+              <div class="stock-bar ${level}" style="width:${qty<=0?100:pct}%"></div>
+            </div>` : '—'}
+        </td>
+        <td>${statusBadge(item.is_available ? 'available' : 'cancelled')}</td>
+        <td>
+          <div class="restock-row">
+            ${tracked ? `<button class="btn btn-success btn-sm" onclick="openRestock(${item.id})">+ Restock</button>` : ''}
+            <button class="btn btn-secondary btn-sm"
+              onclick="toggleTracking(${item.id},${tracked})"
+              title="${tracked?'Stop tracking':'Enable tracking'}">
+              ${tracked ? 'Untrack' : 'Track'}
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function openRestock(id) {
+    restockItemId = id;
+    const item = allItems.find(i => i.id === id);
+    document.getElementById('restock-item-name').textContent = item.name_en;
+    document.getElementById('restock-current').textContent   = `Current stock: ${item.stock_qty}`;
+    document.getElementById('restock-qty').value = '';
+    openModal('restock-modal');
+  }
+
+  async function confirmRestock() {
+    const qty = parseInt(document.getElementById('restock-qty').value);
+    if (isNaN(qty) || qty < 0) return showToast('Enter a valid quantity', 'error');
+    try {
+      await apiPut(`/api/inventory/${restockItemId}/stock`, { stock_qty: qty });
+      showToast('Stock updated', 'success');
+      closeModal('restock-modal');
+      await load();
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  async function toggleTracking(id, currentlyTracked) {
+    try {
+      await apiPut(`/api/inventory/${id}/stock`, { track_stock: currentlyTracked ? 0 : 1 });
+      showToast(currentlyTracked ? 'Tracking disabled' : 'Tracking enabled', 'success');
+      await load();
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  load();
+</script>
+</body>
+</html>

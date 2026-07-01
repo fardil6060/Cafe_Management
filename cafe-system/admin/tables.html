@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tables — Cafe Admin</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+  <style>
+    .tables-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .table-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow .15s;
+    }
+    .table-card:hover { box-shadow: var(--shadow-md); }
+    .table-card.occupied { border-color: var(--brand); }
+    .table-card-head { display:flex; justify-content:space-between; align-items:flex-start; }
+    .table-card-name { font-size: 16px; font-weight: 700; }
+    .table-card-seats { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .table-card-orders { font-size:13px; color:var(--text-2); }
+    .table-card-actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .qr-preview {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: contain;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: #fff;
+      cursor: pointer;
+    }
+    .qr-modal-inner { display:flex; flex-direction:column; align-items:center; gap:16px; }
+    .qr-modal-img { width: 240px; height: 240px; object-fit: contain; }
+    .qr-url-box {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text-2);
+      word-break: break-all;
+      text-align: center;
+    }
+    .add-table-form { display:flex; flex-direction:column; gap:14px; }
+  </style>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg></div>
+      <div><div class="sidebar-brand-text">Cafe Manager</div><div class="sidebar-brand-sub">Admin Panel</div></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main</div>
+      <a href="/dashboard.html" class="nav-item" data-page="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+      <a href="/orders.html" class="nav-item" data-page="orders.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/></svg>Orders<span class="nav-badge hidden" id="pending-orders-badge">0</span></a>
+      <a href="/tables.html" class="nav-item" data-page="tables.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M6 12v6M18 12v6M4 18h5M15 18h5"/></svg>Tables</a>
+      <a href="/payment.html" class="nav-item" data-page="payment.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Payment</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Manage</div>
+      <a href="/menu-editor.html" class="nav-item" data-page="menu-editor.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Menu Editor</a>
+      <a href="/inventory.html" class="nav-item" data-page="inventory.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Inventory</a>
+      <a href="/customers.html" class="nav-item" data-page="customers.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Customers</a>
+      <a href="/sales.html" class="nav-item" data-page="sales.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>Sales History</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><div class="sidebar-avatar" id="sidebar-avatar">A</div><span class="sidebar-username" id="sidebar-username">admin</span></div>
+      <button class="btn-signout" onclick="signOut()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <div class="topbar">
+      <span class="topbar-title" id="page-title">Tables</span>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbar-date"></span>
+        <button class="btn btn-primary btn-sm" onclick="openModal('add-table-modal')">+ Add Table</button>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="tables-grid" id="tables-grid">
+        <div style="color:var(--text-3);padding:40px;grid-column:1/-1;text-align:center">Loading tables...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QR Modal -->
+<div class="modal-backdrop hidden" id="qr-modal" onclick="closeModalOnBackdrop(event,'qr-modal')">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <span class="modal-title" id="qr-modal-title">QR Code</span>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('qr-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="qr-modal-inner">
+        <img id="qr-modal-img" class="qr-modal-img" src="" alt="QR Code" />
+        <div class="qr-url-box" id="qr-modal-url"></div>
+        <p class="text-sm text-muted" style="text-align:center">Customers scan this to open the menu for this table.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="downloadQR()">⬇ Download</button>
+      <button class="btn btn-danger btn-sm" onclick="regenerateQR()">↻ New QR Code</button>
+      <button class="btn btn-primary btn-sm" onclick="closeModal('qr-modal')">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Table Modal -->
+<div class="modal-backdrop hidden" id="add-table-modal" onclick="closeModalOnBackdrop(event,'add-table-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add New Table</span>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('add-table-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="add-table-form">
+        <div class="field-group">
+          <label>Table Name</label>
+          <input type="text" id="new-table-name" placeholder="e.g. Table 11" />
+        </div>
+        <div class="field-group">
+          <label>Seat Count</label>
+          <input type="number" id="new-table-seats" value="4" min="1" max="20" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('add-table-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addTable()">Add Table</button>
+    </div>
+  </div>
+</div>
+
+<div id="admin-toast"></div>
+<script src="/js/core.js"></script>
+<script>
+  adminPageInit('Tables');
+  let activeQRTableId = null;
+  let allTables = [];
+
+  async function loadTables() {
+    try {
+      allTables = await apiGet('/api/tables');
+      renderTables(allTables);
+    } catch { showToast('Failed to load tables', 'error'); }
+  }
+
+  function renderTables(tables) {
+    const grid = document.getElementById('tables-grid');
+    if (!tables.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-3)">No tables yet. Add one above.</div>`;
+      return;
+    }
+    grid.innerHTML = tables.map(t => buildTableCard(t)).join('');
+  }
+
+  function buildTableCard(t) {
+    const isOccupied = t.status === 'occupied';
+    return `
+    <div class="table-card ${isOccupied ? 'occupied' : ''}">
+      <div class="table-card-head">
+        <div>
+          <div class="table-card-name">${t.name}</div>
+          <div class="table-card-seats">${t.seat_count} seats</div>
+        </div>
+        ${statusBadge(t.status)}
+      </div>
+      <img class="qr-preview" src="" alt="QR" id="qr-thumb-${t.id}"
+        onclick="openQRModal(${t.id})" title="Click to view full QR" />
+      <div class="table-card-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openQRModal(${t.id})">View QR</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTable(${t.id},'${t.name}')">Delete</button>
+      </div>
+    </div>`;
+  }
+
+  async function loadQRThumbs() {
+    for (const t of allTables) {
+      try {
+        const data = await apiGet(`/api/qr/table/${t.id}?host=${location.origin}`);
+        const img = document.getElementById(`qr-thumb-${t.id}`);
+        if (img) img.src = data.qr_image;
+      } catch {}
+    }
+  }
+
+  async function openQRModal(tableId) {
+    activeQRTableId = tableId;
+    try {
+      const data = await apiGet(`/api/qr/table/${tableId}?host=${location.origin}`);
+      document.getElementById('qr-modal-title').textContent = `QR Code — ${data.table_name}`;
+      document.getElementById('qr-modal-img').src = data.qr_image;
+      document.getElementById('qr-modal-url').textContent = data.menu_url;
+      openModal('qr-modal');
+    } catch { showToast('Could not load QR', 'error'); }
+  }
+
+  function downloadQR() {
+    const img = document.getElementById('qr-modal-img');
+    const title = document.getElementById('qr-modal-title').textContent.replace(/[^a-z0-9]/gi,'_');
+    const a = document.createElement('a');
+    a.href = img.src;
+    a.download = `${title}.png`;
+    a.click();
+  }
+
+  async function regenerateQR() {
+    if (!activeQRTableId) return;
+    confirmAction('Generate a new QR code? The old one will stop working.', async () => {
+      try {
+        await apiPost(`/api/tables/${activeQRTableId}/regenerate-qr`, {});
+        showToast('New QR generated', 'success');
+        await openQRModal(activeQRTableId);
+        await loadTables();
+        loadQRThumbs();
+      } catch { showToast('Failed to regenerate QR', 'error'); }
+    });
+  }
+
+  async function addTable() {
+    const name  = document.getElementById('new-table-name').value.trim();
+    const seats = parseInt(document.getElementById('new-table-seats').value) || 4;
+    if (!name) return showToast('Table name is required', 'error');
+    try {
+      await apiPost('/api/tables', { name, seat_count: seats });
+      showToast('Table added', 'success');
+      closeModal('add-table-modal');
+      document.getElementById('new-table-name').value = '';
+      await loadTables();
+      loadQRThumbs();
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  async function deleteTable(id, name) {
+    confirmAction(`Delete "${name}"? This cannot be undone.`, async () => {
+      try {
+        await apiDelete(`/api/tables/${id}`);
+        showToast('Table deleted');
+        loadTables();
+      } catch (err) { showToast(err.message, 'error'); }
+    });
+  }
+
+  loadTables().then(() => loadQRThumbs());
+  setInterval(loadTables, 20000);
+</script>
+</body>
+</html>

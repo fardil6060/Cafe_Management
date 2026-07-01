@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Menu Editor — Cafe Admin</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+  <style>
+    .menu-layout { display:grid; grid-template-columns:240px 1fr; gap:20px; align-items:start; }
+    .cat-list { display:flex; flex-direction:column; gap:2px; }
+    .cat-item {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 12px; border-radius:var(--radius-sm); cursor:pointer;
+      font-size:13.5px; font-weight:500; transition:background .12s;
+      border:1.5px solid transparent;
+    }
+    .cat-item:hover { background:var(--surface-2); }
+    .cat-item.active { background:var(--brand-light); border-color:var(--brand-muted); color:var(--brand); }
+    .cat-item-actions { display:flex; gap:4px; opacity:0; transition:opacity .12s; }
+    .cat-item:hover .cat-item-actions { opacity:1; }
+    .cat-action-btn {
+      width:24px; height:24px; border-radius:4px; border:none; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; font-size:12px;
+    }
+    .cat-edit-btn { background:var(--blue-bg); color:var(--blue); }
+    .cat-del-btn  { background:var(--red-bg);  color:var(--red);  }
+    .items-toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+    .items-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
+    .item-card {
+      background:var(--surface); border:1.5px solid var(--border);
+      border-radius:var(--radius-md); overflow:hidden;
+      box-shadow:var(--shadow-sm); transition:box-shadow .15s;
+    }
+    .item-card:hover { box-shadow:var(--shadow-md); }
+    .item-card.unavailable { opacity:.6; }
+    .item-img {
+      width:100%; aspect-ratio:16/9; object-fit:cover;
+      background:var(--brand-light); display:flex; align-items:center;
+      justify-content:center; font-size:32px; color:var(--brand);
+    }
+    .item-img img { width:100%; height:100%; object-fit:cover; }
+    .item-info { padding:12px 14px; }
+    .item-name-en { font-size:14px; font-weight:700; }
+    .item-name-bn { font-size:12px; color:var(--text-3); margin-top:1px; }
+    .item-price   { font-size:15px; font-weight:700; color:var(--brand); margin-top:6px; }
+    .item-foot {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 14px; border-top:1px solid var(--border);
+      background:var(--surface-2);
+    }
+    .item-foot-actions { display:flex; gap:6px; }
+    .toggle-avail {
+      width:36px; height:20px; border-radius:10px; border:none; cursor:pointer;
+      position:relative; transition:background .2s; flex-shrink:0;
+    }
+    .toggle-avail::after {
+      content:''; position:absolute; width:14px; height:14px;
+      background:#fff; border-radius:50%; top:3px; left:3px;
+      transition:transform .2s;
+    }
+    .toggle-avail.on  { background:var(--green); }
+    .toggle-avail.off { background:var(--text-3); }
+    .toggle-avail.on::after { transform:translateX(16px); }
+    .avail-label { font-size:11px; color:var(--text-3); }
+    .form-img-preview {
+      width:100%; aspect-ratio:16/9; object-fit:cover;
+      border-radius:var(--radius-sm); border:1px solid var(--border);
+      background:var(--brand-light); display:flex; align-items:center;
+      justify-content:center; font-size:28px; margin-bottom:4px;
+    }
+    .form-img-preview img { width:100%; height:100%; object-fit:cover; border-radius:var(--radius-sm); }
+    .stock-row { display:flex; gap:10px; align-items:center; }
+    .track-stock-toggle { display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; }
+  </style>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg></div>
+      <div><div class="sidebar-brand-text">Cafe Manager</div><div class="sidebar-brand-sub">Admin Panel</div></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main</div>
+      <a href="/dashboard.html" class="nav-item" data-page="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+      <a href="/orders.html" class="nav-item" data-page="orders.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/></svg>Orders<span class="nav-badge hidden" id="pending-orders-badge">0</span></a>
+      <a href="/tables.html" class="nav-item" data-page="tables.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M6 12v6M18 12v6M4 18h5M15 18h5"/></svg>Tables</a>
+      <a href="/payment.html" class="nav-item" data-page="payment.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Payment</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Manage</div>
+      <a href="/menu-editor.html" class="nav-item" data-page="menu-editor.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Menu Editor</a>
+      <a href="/inventory.html" class="nav-item" data-page="inventory.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Inventory</a>
+      <a href="/customers.html" class="nav-item" data-page="customers.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Customers</a>
+      <a href="/sales.html" class="nav-item" data-page="sales.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>Sales History</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><div class="sidebar-avatar" id="sidebar-avatar">A</div><span class="sidebar-username" id="sidebar-username">admin</span></div>
+      <button class="btn-signout" onclick="signOut()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <div class="topbar">
+      <span class="topbar-title" id="page-title">Menu Editor</span>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbar-date"></span>
+        <button class="btn btn-secondary btn-sm" onclick="openCatModal()">+ Category</button>
+        <button class="btn btn-primary btn-sm" onclick="openItemModal()">+ Add Item</button>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="menu-layout">
+        <!-- Left: Categories -->
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Categories</span></div>
+          <div class="panel-body" style="padding:10px">
+            <div class="cat-list" id="cat-list"></div>
+          </div>
+        </div>
+        <!-- Right: Items -->
+        <div>
+          <div class="items-toolbar">
+            <span class="panel-title" id="items-heading">All Items</span>
+            <div class="search-bar" style="margin-left:auto">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="item-search" placeholder="Search items..." oninput="filterItems()" />
+            </div>
+          </div>
+          <div class="items-grid" id="items-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Item Modal -->
+<div class="modal-backdrop hidden" id="item-modal" onclick="closeModalOnBackdrop(event,'item-modal')">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <span class="modal-title" id="item-modal-title">Add Item</span>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('item-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="item-id" value="" />
+      <div class="form-img-preview" id="img-preview">☕</div>
+      <div class="form-row cols-2">
+        <div class="field-group">
+          <label>Name (English) *</label>
+          <input type="text" id="item-name-en" placeholder="e.g. Hot Tea" />
+        </div>
+        <div class="field-group">
+          <label>Name (বাংলা) *</label>
+          <input type="text" id="item-name-bn" placeholder="যেমন: গরম চা" />
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="field-group">
+          <label>Description (English)</label>
+          <input type="text" id="item-desc-en" placeholder="Short description" />
+        </div>
+        <div class="field-group">
+          <label>Description (বাংলা)</label>
+          <input type="text" id="item-desc-bn" placeholder="সংক্ষিপ্ত বিবরণ" />
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="field-group">
+          <label>Price (৳) *</label>
+          <input type="number" id="item-price" placeholder="0" min="0" />
+        </div>
+        <div class="field-group">
+          <label>Category *</label>
+          <select id="item-category"></select>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Image URL (optional)</label>
+        <input type="url" id="item-image" placeholder="https://..." oninput="previewImage(this.value)" />
+      </div>
+      <div class="stock-row">
+        <label class="track-stock-toggle">
+          <input type="checkbox" id="item-track-stock" onchange="toggleStockField()" />
+          Track stock for this item
+        </label>
+      </div>
+      <div class="field-group" id="stock-qty-field" style="display:none">
+        <label>Stock Quantity</label>
+        <input type="number" id="item-stock-qty" placeholder="0" min="0" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('item-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveItem()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category Modal -->
+<div class="modal-backdrop hidden" id="cat-modal" onclick="closeModalOnBackdrop(event,'cat-modal')">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <span class="modal-title" id="cat-modal-title">Add Category</span>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('cat-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cat-id" />
+      <div class="field-group">
+        <label>Name (English) *</label>
+        <input type="text" id="cat-name-en" placeholder="e.g. Drinks" />
+      </div>
+      <div class="field-group">
+        <label>Name (বাংলা) *</label>
+        <input type="text" id="cat-name-bn" placeholder="যেমন: পানীয়" />
+      </div>
+      <div class="field-group">
+        <label>Sort Order</label>
+        <input type="number" id="cat-sort" placeholder="1" min="0" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('cat-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCat()">Save Category</button>
+    </div>
+  </div>
+</div>
+
+<div id="admin-toast"></div>
+<script src="/js/core.js"></script>
+<script>
+  adminPageInit('Menu Editor');
+
+  let categories = [];
+  let allItems   = [];
+  let activeCatId = null;
+
+  async function load() {
+    [categories, allItems] = await Promise.all([
+      apiGet('/api/menu/categories'),
+      apiGet('/api/menu/items')
+    ]);
+    renderCats();
+    renderItems();
+    populateCatSelect();
+  }
+
+  function renderCats() {
+    const list = document.getElementById('cat-list');
+    const allBtn = `<div class="cat-item ${activeCatId===null?'active':''}" onclick="setCat(null)">
+      <span>All Items</span>
+      <span class="badge badge-blue" style="font-size:10px">${allItems.length}</span>
+    </div>`;
+    const cats = categories.map(c => {
+      const count = allItems.filter(i => i.category_id === c.id).length;
+      return `<div class="cat-item ${activeCatId===c.id?'active':''}" onclick="setCat(${c.id})">
+        <span>${c.name_en}</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="badge badge-blue" style="font-size:10px">${count}</span>
+          <div class="cat-item-actions">
+            <button class="cat-action-btn cat-edit-btn" onclick="event.stopPropagation();editCat(${c.id})">✎</button>
+            <button class="cat-action-btn cat-del-btn"  onclick="event.stopPropagation();deleteCat(${c.id})">✕</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    list.innerHTML = allBtn + cats;
+  }
+
+  function setCat(id) {
+    activeCatId = id;
+    document.getElementById('items-heading').textContent =
+      id === null ? 'All Items' : (categories.find(c=>c.id===id)?.name_en || 'Items');
+    renderCats();
+    renderItems();
+  }
+
+  function filterItems() {
+    renderItems();
+  }
+
+  function renderItems() {
+    const search = document.getElementById('item-search').value.toLowerCase();
+    const grid   = document.getElementById('items-grid');
+    let items    = activeCatId ? allItems.filter(i => i.category_id === activeCatId) : allItems;
+    if (search) items = items.filter(i =>
+      i.name_en.toLowerCase().includes(search) ||
+      i.name_bn.includes(search)
+    );
+
+    if (!items.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-3)">No items found.</div>`;
+      return;
+    }
+
+    grid.innerHTML = items.map(item => `
+    <div class="item-card ${!item.is_available?'unavailable':''}">
+      <div class="item-img">
+        ${item.image_url
+          ? `<img src="${item.image_url}" alt="${item.name_en}" onerror="this.parentElement.innerHTML='☕'" />`
+          : '☕'}
+      </div>
+      <div class="item-info">
+        <div class="item-name-en">${item.name_en}</div>
+        <div class="item-name-bn">${item.name_bn}</div>
+        <div class="item-price">৳${item.price}</div>
+      </div>
+      <div class="item-foot">
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="toggle-avail ${item.is_available?'on':'off'}"
+            onclick="toggleAvail(${item.id},${item.is_available})" title="${item.is_available?'Available':'Unavailable'}"></button>
+          <span class="avail-label">${item.is_available?'Available':'Off menu'}</span>
+        </div>
+        <div class="item-foot-actions">
+          <button class="btn btn-secondary btn-sm" onclick="editItem(${item.id})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteItem(${item.id})">Delete</button>
+        </div>
+      </div>
+    </div>`).join('');
+  }
+
+  function populateCatSelect() {
+    const sel = document.getElementById('item-category');
+    sel.innerHTML = categories.map(c => `<option value="${c.id}">${c.name_en}</option>`).join('');
+  }
+
+  /* ── Item Modal ── */
+  function openItemModal(item = null) {
+    document.getElementById('item-id').value       = item?.id || '';
+    document.getElementById('item-name-en').value  = item?.name_en || '';
+    document.getElementById('item-name-bn').value  = item?.name_bn || '';
+    document.getElementById('item-desc-en').value  = item?.description_en || '';
+    document.getElementById('item-desc-bn').value  = item?.description_bn || '';
+    document.getElementById('item-price').value    = item?.price || '';
+    document.getElementById('item-image').value    = item?.image_url || '';
+    document.getElementById('item-stock-qty').value= item?.stock_qty || 0;
+    document.getElementById('item-track-stock').checked = !!item?.track_stock;
+    document.getElementById('item-modal-title').textContent = item ? 'Edit Item' : 'Add Item';
+    if (item?.category_id) document.getElementById('item-category').value = item.category_id;
+    previewImage(item?.image_url || '');
+    toggleStockField();
+    openModal('item-modal');
+  }
+
+  function previewImage(url) {
+    const el = document.getElementById('img-preview');
+    el.innerHTML = url
+      ? `<img src="${url}" alt="preview" onerror="this.parentElement.innerHTML='☕'" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-sm)" />`
+      : '☕';
+  }
+
+  function toggleStockField() {
+    const checked = document.getElementById('item-track-stock').checked;
+    document.getElementById('stock-qty-field').style.display = checked ? 'flex' : 'none';
+  }
+
+  async function editItem(id) {
+    const item = allItems.find(i => i.id === id);
+    if (item) openItemModal(item);
+  }
+
+  async function saveItem() {
+    const id          = document.getElementById('item-id').value;
+    const name_en     = document.getElementById('item-name-en').value.trim();
+    const name_bn     = document.getElementById('item-name-bn').value.trim();
+    const description_en = document.getElementById('item-desc-en').value.trim();
+    const description_bn = document.getElementById('item-desc-bn').value.trim();
+    const price       = parseFloat(document.getElementById('item-price').value);
+    const category_id = parseInt(document.getElementById('item-category').value);
+    const image_url   = document.getElementById('item-image').value.trim();
+    const track_stock = document.getElementById('item-track-stock').checked ? 1 : 0;
+    const stock_qty   = parseInt(document.getElementById('item-stock-qty').value) || 0;
+
+    if (!name_en || !name_bn || isNaN(price) || !category_id)
+      return showToast('Please fill all required fields', 'error');
+
+    const body = { category_id, name_en, name_bn, description_en, description_bn,
+                   price, image_url, track_stock, stock_qty,
+                   is_available: stock_qty > 0 || !track_stock ? 1 : 0 };
+    try {
+      if (id) {
+        await apiPut(`/api/menu/items/${id}`, body);
+        showToast('Item updated', 'success');
+      } else {
+        await apiPost('/api/menu/items', body);
+        showToast('Item added', 'success');
+      }
+      closeModal('item-modal');
+      await load();
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  async function toggleAvail(id, current) {
+    try {
+      await apiPut(`/api/inventory/${id}/availability`, { is_available: current ? 0 : 1 });
+      await load();
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  async function deleteItem(id) {
+    confirmAction('Delete this item? This cannot be undone.', async () => {
+      try {
+        await apiDelete(`/api/menu/items/${id}`);
+        showToast('Item deleted');
+        await load();
+      } catch (err) { showToast(err.message, 'error'); }
+    });
+  }
+
+  /* ── Category Modal ── */
+  function openCatModal(cat = null) {
+    document.getElementById('cat-id').value      = cat?.id || '';
+    document.getElementById('cat-name-en').value = cat?.name_en || '';
+    document.getElementById('cat-name-bn').value = cat?.name_bn || '';
+    document.getElementById('cat-sort').value    = cat?.sort_order || '';
+    document.getElementById('cat-modal-title').textContent = cat ? 'Edit Category' : 'Add Category';
+    openModal('cat-modal');
+  }
+
+  function editCat(id) {
+    const cat = categories.find(c => c.id === id);
+    if (cat) openCatModal(cat);
+  }
+
+  async function saveCat() {
+    const id      = document.getElementById('cat-id').value;
+    const name_en = document.getElementById('cat-name-en').value.trim();
+    const name_bn = document.getElementById('cat-name-bn').value.trim();
+    const sort_order = parseInt(document.getElementById('cat-sort').value) || 0;
+
+    if (!name_en || !name_bn) return showToast('Both language names required', 'error');
+    try {
+      if (id) {
+        await apiPut(`/api/menu/categories/${id}`, { name_en, name_bn, sort_order });
+        showToast('Category updated', 'success');
+      } else {
+        await apiPost('/api/menu/categories', { name_en, name_bn, sort_order });
+        showToast('Category added', 'success');
+      }
+      closeModal('cat-modal');
+      await load();
+    } catch (err) { showToast(err.message, 'error'); }
+  }
+
+  async function deleteCat(id) {
+    confirmAction('Delete this category? Items inside will also be removed.', async () => {
+      try {
+        await apiDelete(`/api/menu/categories/${id}`);
+        showToast('Category deleted');
+        activeCatId = null;
+        await load();
+      } catch (err) { showToast(err.message, 'error'); }
+    });
+  }
+
+  load();
+</script>
+</body>
+</html>

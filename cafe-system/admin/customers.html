@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customers — Cafe Admin</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+  <style>
+    .customer-layout { display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start; }
+    .avatar-circle {
+      width:36px; height:36px; border-radius:50%; background:var(--brand-light);
+      color:var(--brand); font-weight:700; font-size:14px;
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    }
+    .customer-name-cell { display:flex; align-items:center; gap:10px; }
+    .detail-panel {
+      background:var(--surface); border:1.5px solid var(--border);
+      border-radius:var(--radius-md); overflow:hidden; position:sticky; top:24px;
+    }
+    .detail-head {
+      padding:20px; border-bottom:1px solid var(--border);
+      display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center;
+    }
+    .detail-avatar {
+      width:56px; height:56px; border-radius:50%; background:var(--brand-light);
+      color:var(--brand); font-size:22px; font-weight:700;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .detail-name  { font-size:17px; font-weight:700; }
+    .detail-phone { font-size:13px; color:var(--text-3); }
+    .detail-stats { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); }
+    .detail-stat  { background:var(--surface); padding:14px; text-align:center; }
+    .detail-stat-val   { font-size:18px; font-weight:700; color:var(--text-1); }
+    .detail-stat-label { font-size:11px; color:var(--text-3); margin-top:2px; }
+    .detail-sales { padding:14px; display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto; }
+    .sale-row {
+      display:flex; justify-content:space-between; align-items:center;
+      font-size:13px; padding:8px 10px; border-radius:var(--radius-sm);
+      background:var(--surface-2); border:1px solid var(--border);
+    }
+    .no-selection {
+      padding:60px 20px; text-align:center; color:var(--text-3); font-size:13.5px;
+    }
+    .summary-chips { display:flex; gap:10px; flex-wrap:wrap; }
+    .chip {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--radius-sm); padding:10px 16px;
+      display:flex; flex-direction:column; gap:2px; min-width:120px;
+    }
+    .chip-val   { font-size:20px; font-weight:700; }
+    .chip-label { font-size:11px; color:var(--text-3); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  </style>
+</head>
+<body>
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg></div>
+      <div><div class="sidebar-brand-text">Cafe Manager</div><div class="sidebar-brand-sub">Admin Panel</div></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main</div>
+      <a href="/dashboard.html" class="nav-item" data-page="dashboard.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+      <a href="/orders.html" class="nav-item" data-page="orders.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/></svg>Orders<span class="nav-badge hidden" id="pending-orders-badge">0</span></a>
+      <a href="/tables.html" class="nav-item" data-page="tables.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M6 12v6M18 12v6M4 18h5M15 18h5"/></svg>Tables</a>
+      <a href="/payment.html" class="nav-item" data-page="payment.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Payment</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Manage</div>
+      <a href="/menu-editor.html" class="nav-item" data-page="menu-editor.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Menu Editor</a>
+      <a href="/inventory.html" class="nav-item" data-page="inventory.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Inventory</a>
+      <a href="/customers.html" class="nav-item" data-page="customers.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Customers</a>
+      <a href="/sales.html" class="nav-item" data-page="sales.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>Sales History</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><div class="sidebar-avatar" id="sidebar-avatar">A</div><span class="sidebar-username" id="sidebar-username">admin</span></div>
+      <button class="btn-signout" onclick="signOut()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <div class="topbar">
+      <span class="topbar-title" id="page-title">Customers</span>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbar-date"></span>
+        <div class="search-bar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="cust-search" placeholder="Name or phone..." oninput="searchCustomers()" />
+        </div>
+      </div>
+    </div>
+
+    <div class="page-content">
+      <div class="summary-chips" id="summary-chips"></div>
+
+      <div class="customer-layout">
+        <!-- Table -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">All Customers</span>
+            <span class="text-sm text-muted" id="cust-count"></span>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Visits</th>
+                <th>Total Spent</th>
+                <th>Last Visit</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="cust-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- Detail panel -->
+        <div class="detail-panel" id="detail-panel">
+          <div class="no-selection">← Click a customer to view their history</div>
+          <div id="detail-content" class="hidden">
+            <div class="detail-head">
+              <div class="detail-avatar" id="d-avatar"></div>
+              <div class="detail-name"  id="d-name"></div>
+              <div class="detail-phone" id="d-phone"></div>
+            </div>
+            <div class="detail-stats">
+              <div class="detail-stat">
+                <div class="detail-stat-val" id="d-visits"></div>
+                <div class="detail-stat-label">Visits</div>
+              </div>
+              <div class="detail-stat">
+                <div class="detail-stat-val" id="d-spent"></div>
+                <div class="detail-stat-label">Total Spent</div>
+              </div>
+            </div>
+            <div style="padding:14px 14px 6px;font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Visit History</div>
+            <div class="detail-sales" id="d-sales"></div>
+            <div style="padding:12px 14px;border-top:1px solid var(--border);display:flex;gap:8px">
+              <button class="btn btn-danger btn-sm w-full" onclick="deleteCustomer()">Delete Customer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="admin-toast"></div>
+<script src="/js/core.js"></script>
+<script>
+  adminPageInit('Customers');
+
+  let allCustomers  = [];
+  let selectedCustId = null;
+
+  async function load() {
+    try {
+      allCustomers = await apiGet('/api/customers');
+      renderSummary();
+      renderTable(allCustomers);
+    } catch { showToast('Failed to load customers', 'error'); }
+  }
+
+  function renderSummary() {
+    const totalSpent = allCustomers.reduce((s,c) => s + (c.total_spent||0), 0);
+    const returning  = allCustomers.filter(c => c.visit_count > 1).length;
+    document.getElementById('summary-chips').innerHTML = `
+      <div class="chip"><div class="chip-val">${allCustomers.length}</div><div class="chip-label">Total Customers</div></div>
+      <div class="chip"><div class="chip-val">${returning}</div><div class="chip-label">Returning</div></div>
+      <div class="chip"><div class="chip-val">${taka(totalSpent)}</div><div class="chip-label">Total Revenue</div></div>
+    `;
+  }
+
+  function renderTable(customers) {
+    document.getElementById('cust-count').textContent = `${customers.length} customer(s)`;
+    const tbody = document.getElementById('cust-tbody');
+
+    if (!customers.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-3)">No customers recorded yet.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = customers.map(c => {
+      const initial = (c.name || c.phone || '?')[0].toUpperCase();
+      const isActive = selectedCustId === c.id;
+      return `<tr style="cursor:pointer;${isActive?'background:var(--brand-light)':''}" onclick="selectCustomer(${c.id})">
+        <td>
+          <div class="customer-name-cell">
+            <div class="avatar-circle">${initial}</div>
+            <span style="font-weight:600">${c.name || '—'}</span>
+          </div>
+        </td>
+        <td class="font-mono text-muted">${c.phone || '—'}</td>
+        <td><span class="badge ${c.visit_count>1?'badge-green':'badge-blue'}">${c.visit_count}</span></td>
+        <td style="font-weight:600;color:var(--brand)">${taka(c.total_spent)}</td>
+        <td class="text-muted text-sm">${formatDate(c.last_visit)}</td>
+        <td><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();selectCustomer(${c.id})">View</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function selectCustomer(id) {
+    selectedCustId = id;
+    try {
+      const c = await apiGet(`/api/customers/${id}`);
+      const initial = (c.name || c.phone || '?')[0].toUpperCase();
+
+      document.getElementById('detail-panel').querySelector('.no-selection').classList.add('hidden');
+      document.getElementById('detail-content').classList.remove('hidden');
+
+      document.getElementById('d-avatar').textContent = initial;
+      document.getElementById('d-name').textContent   = c.name || 'Anonymous';
+      document.getElementById('d-phone').textContent  = c.phone || 'No phone recorded';
+      document.getElementById('d-visits').textContent = c.visit_count;
+      document.getElementById('d-spent').textContent  = taka(c.total_spent);
+
+      const salesEl = document.getElementById('d-sales');
+      if (!c.sales?.length) {
+        salesEl.innerHTML = `<div class="text-muted text-sm" style="text-align:center;padding:16px">No sales history yet.</div>`;
+      } else {
+        salesEl.innerHTML = c.sales.map(s => `
+          <div class="sale-row">
+            <div>
+              <div style="font-weight:600">Order #${s.order_id}</div>
+              <div style="font-size:11px;color:var(--text-3)">${formatDateTime(s.paid_at)}</div>
+            </div>
+            <span style="font-weight:700;color:var(--brand)">${taka(s.total)}</span>
+          </div>`).join('');
+      }
+
+      renderTable(allCustomers);
+    } catch { showToast('Failed to load customer details', 'error'); }
+  }
+
+  async function deleteCustomer() {
+    if (!selectedCustId) return;
+    confirmAction('Delete this customer record? Sales history will be unlinked but not deleted.', async () => {
+      try {
+        await apiDelete(`/api/customers/${selectedCustId}`);
+        showToast('Customer deleted');
+        selectedCustId = null;
+        document.getElementById('detail-panel').querySelector('.no-selection').classList.remove('hidden');
+        document.getElementById('detail-content').classList.add('hidden');
+        await load();
+      } catch (err) { showToast(err.message, 'error'); }
+    });
+  }
+
+  async function searchCustomers() {
+    const q = document.getElementById('cust-search').value.trim();
+    try {
+      const results = await apiGet(`/api/customers${q ? `?search=${encodeURIComponent(q)}` : ''}`);
+      renderTable(results);
+    } catch {}
+  }
+
+  load();
+</script>
+</body>
+</html>

@@ -3,6 +3,9 @@ const API   = '';
 let lang    = 'en';
 let tableId = null;
 let tableToken = null;
+let customerId = null;
+let customerName = '';
+let customerPhone = '';
 let cart    = {};
 let menuData = [];
 let activeCat = null;
@@ -26,9 +29,15 @@ async function init() {
     const table = await res.json();
     tableId = table.id;
     document.getElementById('table-name-display').textContent = table.name;
-    document.getElementById('app').classList.remove('hidden');
-    await loadMenu();
-    startStatusPoll();
+    
+    // ALWAYS show customer info form first (no localStorage bypass)
+    // The form will handle verification if table is locked
+    document.getElementById('customer-info-screen').classList.remove('hidden');
+    
+    // Store table lock status for verification
+    window.tableLockedBy = table.locked_by || null;
+    window.tableLockedByName = table.locked_by_name || null;
+    window.tableLockedByPhone = table.locked_by_phone || null;
   } catch {
     showInvalid();
   }
@@ -36,6 +45,133 @@ async function init() {
 
 function showInvalid() {
   document.getElementById('invalid-screen').classList.remove('hidden');
+}
+
+// Removed - no longer using showTableLocked since we always show the form
+
+async function handleCustomerInfo(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-continue');
+  const errEl = document.getElementById('customer-info-error');
+  const nameInput = document.getElementById('customer-name');
+  const phoneInput = document.getElementById('customer-phone');
+  
+  btn.disabled = true;
+  btn.querySelector('span').textContent = lang === 'en' ? 'Verifying...' : 'যাচাই হচ্ছে...';
+  errEl.classList.add('hidden');
+
+  const name = nameInput.value.trim();
+  const phone = phoneInput.value.trim();
+
+  if (!name || !phone) {
+    errEl.textContent = lang === 'en' ? 'Please fill all fields' : 'অনুগ্রহ করে সব ক্ষেত্র পূরণ করুন';
+    errEl.classList.remove('hidden');
+    btn.disabled = false;
+    btn.querySelector('span').textContent = lang === 'en' ? 'Continue to Menu' : 'মেনুতে যান';
+    return;
+  }
+
+  // Validate Bangladeshi phone number (11 digits starting with 01)
+  const phoneRegex = /^01[3-9]\d{8}$/;
+  if (!phoneRegex.test(phone)) {
+    errEl.textContent = lang === 'en' 
+      ? 'Please enter a valid Bangladeshi phone number (11 digits starting with 01, e.g., 01712345678)'
+      : 'অনুগ্রহ করে একটি বৈধ বাংলাদেশি ফোন নম্বর দিন (০১ দিয়ে শুরু হওয়া ১১ ডিজিট, যেমন ০১৭১২৩৪৫৬৭৮)';
+    errEl.classList.remove('hidden');
+    btn.disabled = false;
+    btn.querySelector('span').textContent = lang === 'en' ? 'Continue to Menu' : 'মেনুতে যান';
+    return;
+  }
+
+  try {
+    // Don't create customer record yet - just store temp info
+    // Customer will be created/updated only on successful payment
+    customerId = null; // Will be set on payment
+    customerName = name;
+    customerPhone = phone;
+
+    // Check if table is locked by someone else
+    if (window.tableLockedBy) {
+      const lockedName = window.tableLockedByName || '';
+      const lockedPhone = window.tableLockedByPhone || '';
+      
+      // If the same person is trying to access (matching name AND phone), let them in
+      if (name === lockedName && phone === lockedPhone) {
+        // Same customer returning - allow access
+        customerName = name;
+        customerPhone = phone;
+        document.getElementById('customer-info-screen').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        await loadMenu();
+        startStatusPoll();
+        showToast(lang === 'en' ? 'Welcome back!' : 'আবার স্বাগতম!');
+        return;
+      }
+      
+      // Different person - deny access
+      errEl.textContent = lang === 'en'
+        ? `This table is currently booked by ${lockedName}. Only ${lockedName} can access this table.`
+        : `এই টেবিলটি বর্তমানে ${lockedName} দ্বারা বুক করা আছে। শুধুমাত্র ${lockedName} এই টেবিলটি অ্যাক্সেস করতে পারেন।`;
+      errEl.classList.remove('hidden');
+      btn.disabled = false;
+      btn.querySelector('span').textContent = lang === 'en' ? 'Continue to Menu' : 'মেনুতে যান';
+      return;
+    }
+
+    // Lock the table - store name/phone directly (NO customer record created)
+    try {
+      const lockRes = await fetch(`${API}/api/tables/${tableId}/lock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          customer_id: 1,
+          customer_name: name, 
+          customer_phone: phone 
+        })
+      });
+      
+      if (!lockRes.ok) {
+        const lockData = await lockRes.json();
+        throw new Error(lockData.error || 'Failed to lock table');
+      }
+    } catch (err) {
+      console.error('Failed to lock table:', err);
+      throw err;
+    }
+
+    // Auto-unlock on page close - but only if NO order was placed
+    // Server-side check ensures table with orders stays locked
+    window.__hasOrdered = false;
+    window.__unlockOnLeave = function() {
+      try {
+        if (!window.__hasOrdered) {
+          navigator.sendBeacon(
+            `${API}/api/tables/${tableId}/unlock`,
+            JSON.stringify({ customer_id: null })
+          );
+        }
+      } catch(e) {}
+    };
+    window.addEventListener('beforeunload', window.__unlockOnLeave);
+
+    // Clear any old localStorage data (fresh start each time)
+    localStorage.removeItem(`cafe_customer_${tableToken}`);
+
+    // Hide customer info screen and show app
+    document.getElementById('customer-info-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    
+    await loadMenu();
+    startStatusPoll();
+    
+    showToast(lang === 'en' ? 'Welcome! Enjoy your meal.' : 'স্বাগতম! ভালো থাকুন।');
+    
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.classList.remove('hidden');
+    btn.disabled = false;
+    btn.querySelector('span').textContent = lang === 'en' ? 'Continue to Menu' : 'মেনুতে যান';
+  }
 }
 
 async function loadMenu() {
@@ -112,10 +248,10 @@ function buildItemCard(item) {
     const img = document.createElement('img');
     img.src = item.image_url;
     img.alt = item.name_en;
-    img.onerror = () => { imgWrap.innerHTML = '<div class="item-img-placeholder">☕</div>'; };
+    img.onerror = () => { imgWrap.innerHTML = '<div class="item-img-placeholder">No image</div>'; };
     imgWrap.appendChild(img);
   } else {
-    imgWrap.innerHTML = '<div class="item-img-placeholder">☕</div>';
+    imgWrap.innerHTML = '<div class="item-img-placeholder">No image</div>';
   }
 
   const body = document.createElement('div');
@@ -316,7 +452,14 @@ async function placeOrder() {
     const res = await fetch(`${API}/api/orders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ table_id: tableId, items, note })
+      body: JSON.stringify({ 
+        table_id: tableId, 
+        customer_id: customerId, 
+        items, 
+        note,
+        customer_name: customerName,
+        customer_phone: customerPhone
+      })
     });
     const data = await res.json();
 
@@ -327,6 +470,9 @@ async function placeOrder() {
       return;
     }
 
+    // Mark that an order was placed - table should stay locked
+    window.__hasOrdered = true;
+    
     cart = {};
     document.getElementById('order-note').value = '';
     btn.querySelector('span').textContent = t('Place Order', 'অর্ডার দিন');
@@ -343,8 +489,8 @@ async function placeOrder() {
 }
 
 const STATUS_LABELS = {
-  pending:   { en: 'Order received',  bn: 'অর্ডার পেয়েছি',    cls: 'status-pending' },
-  preparing: { en: 'Preparing',       bn: 'তৈরি হচ্ছে',        cls: 'status-preparing' },
+  pending:   { en: 'Order pending',  bn: 'অর্ডার অপেক্ষাধীন',    cls: 'status-pending' },
+  preparing: { en: 'Order received',       bn: 'অর্ডার পেয়েছি',        cls: 'status-preparing' },
   ready:     { en: 'Ready to serve',  bn: 'পরিবেশনের জন্য প্রস্তুত', cls: 'status-ready' },
   served:    { en: 'Served',          bn: 'পরিবেশিত',          cls: 'status-served' },
 };

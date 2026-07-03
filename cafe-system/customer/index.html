@@ -16,6 +16,29 @@
     </div>
   </div>
 
+  <div id="customer-info-screen" class="screen hidden">
+    <div class="customer-info-box">
+      <div class="customer-info-header">
+        <h2 data-en="Welcome!" data-bn="স্বাগতম!">Welcome!</h2>
+        <p data-en="Please enter your details to continue" data-bn="অনুগ্রহ করে আপনার তথ্য দিন">Please enter your details to continue</p>
+      </div>
+      <form id="customer-info-form" onsubmit="handleCustomerInfo(event)">
+        <div class="field-group">
+          <label for="customer-name" data-en="Your Name" data-bn="আপনার নাম">Your Name</label>
+          <input id="customer-name" type="text" required placeholder="Enter your name" />
+        </div>
+        <div class="field-group">
+          <label for="customer-phone" data-en="Phone Number" data-bn="ফোন নম্বর">Phone Number</label>
+          <input id="customer-phone" type="tel" required placeholder="Enter your phone number" />
+        </div>
+        <div id="customer-info-error" class="login-error hidden"></div>
+        <button type="submit" class="btn-continue" id="btn-continue">
+          <span data-en="Continue to Menu" data-bn="মেনুতে যান">Continue to Menu</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
   <div id="app" class="hidden">
 
     <header id="top-bar">

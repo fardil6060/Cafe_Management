@@ -172,18 +172,21 @@
 
   function buildTableCard(t) {
     const isOccupied = t.status === 'occupied';
+    const lockedInfo = (isOccupied && t.locked_by_name) ? `<div style="font-size:12px;color:var(--blue);margin-top:4px;font-weight:600">👤 ${t.locked_by_name} ${t.locked_by_phone ? '(' + t.locked_by_phone + ')' : ''}</div>` : '';
     return `
     <div class="table-card ${isOccupied ? 'occupied' : ''}">
       <div class="table-card-head">
         <div>
           <div class="table-card-name">${t.name}</div>
           <div class="table-card-seats">${t.seat_count} seats</div>
+          ${lockedInfo}
         </div>
         ${statusBadge(t.status)}
       </div>
       <img class="qr-preview" src="" alt="QR" id="qr-thumb-${t.id}"
         onclick="openQRModal(${t.id})" title="Click to view full QR" />
       <div class="table-card-actions">
+        ${!isOccupied ? `<button class="btn btn-primary btn-sm" onclick="bookTable(${t.id},'${t.name}')">Book Table</button>` : `<button class="btn btn-danger btn-sm" onclick="unlockTable(${t.id},'${t.name}')">Unlock</button>`}
         <button class="btn btn-secondary btn-sm" onclick="openQRModal(${t.id})">View QR</button>
         <button class="btn btn-danger btn-sm" onclick="deleteTable(${t.id},'${t.name}')">Delete</button>
       </div>
@@ -254,6 +257,37 @@
         showToast('Table deleted');
         loadTables();
       } catch (err) { showToast(err.message, 'error'); }
+    });
+  }
+
+  async function bookTable(tableId, tableName) {
+    const name = prompt('Customer name:');
+    if (!name) return;
+    const phone = prompt('Customer phone number (11 digits starting with 01):');
+    if (!phone) return;
+    
+    try {
+      await apiPost(`/api/tables/${tableId}/lock`, {
+        customer_id: 1,
+        customer_name: name,
+        customer_phone: phone
+      });
+      showToast(`Table ${tableName} booked for ${name}`, 'success');
+      loadTables();
+    } catch (err) {
+      showToast(err.message || 'Failed to book table', 'error');
+    }
+  }
+
+  async function unlockTable(tableId, tableName) {
+    confirmAction(`Unlock ${tableName}? This will make it available for new customers.`, async () => {
+      try {
+        await apiPost(`/api/tables/${tableId}/unlock`, { customer_id: null });
+        showToast(`${tableName} is now available`, 'success');
+        loadTables();
+      } catch (err) {
+        showToast(err.message || 'Failed to unlock table', 'error');
+      }
     });
   }
 

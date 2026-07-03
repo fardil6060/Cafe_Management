@@ -10,7 +10,7 @@ function broadcast(event, data) {
 router.get('/', (req, res) => {
   const { status, table_id, date } = req.query;
   let sql = `
-    SELECT o.*, t.name as table_name
+    SELECT o.*, t.name as table_name, o.customer_name, o.customer_phone
     FROM orders o
     JOIN tables t ON o.table_id = t.id
   `;
@@ -45,9 +45,37 @@ router.get('/', (req, res) => {
   res.json(orders);
 });
 
+router.get('/search', (req, res) => {
+  const { q } = req.query;
+  
+  if (!q || q.length < 2) {
+    return res.json([]);
+  }
+
+  const searchTerm = `%${q}%`;
+  const orders = query(
+    `SELECT o.*, t.name as table_name, o.customer_name, o.customer_phone
+     FROM orders o
+     JOIN tables t ON o.table_id = t.id
+     WHERE o.order_number LIKE ? OR o.customer_phone LIKE ? OR o.customer_name LIKE ?
+     ORDER BY o.created_at DESC
+     LIMIT 50`,
+    [searchTerm, searchTerm, searchTerm]
+  );
+
+  orders.forEach(order => {
+    order.items = query('SELECT * FROM order_items WHERE order_id = ?', [order.id]);
+  });
+
+  res.json(orders);
+});
+
 router.get('/:id', (req, res) => {
   const rows = query(
-    'SELECT o.*, t.name as table_name FROM orders o JOIN tables t ON o.table_id = t.id WHERE o.id = ?',
+    `SELECT o.*, t.name as table_name, o.customer_name, o.customer_phone
+     FROM orders o
+     JOIN tables t ON o.table_id = t.id
+     WHERE o.id = ?`,
     [req.params.id]
   );
   if (!rows.length) return res.status(404).json({ error: 'Order not found' });
@@ -57,7 +85,7 @@ router.get('/:id', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { table_id, items, note = '' } = req.body;
+  const { table_id, customer_id, items, note = '', customer_name = '', customer_phone = '' } = req.body;
 
   if (!table_id || !items || !items.length)
     return res.status(400).json({ error: 'table_id and items are required' });
@@ -96,9 +124,17 @@ router.post('/', (req, res) => {
     resolvedItems.push({ menuItem, qty });
   }
 
+  // Generate unique order number
+  const { generateOrderNumber } = require('../database');
+  let orderNumber = generateOrderNumber();
+  const existingOrder = query('SELECT id FROM orders WHERE order_number = ?', [orderNumber]);
+  while (existingOrder.length) {
+    orderNumber = generateOrderNumber();
+  }
+
   const orderResult = run(
-    'INSERT INTO orders (table_id, note, total, status) VALUES (?, ?, ?, ?)',
-    [table_id, note, total, 'pending']
+    'INSERT INTO orders (order_number, table_id, customer_id, customer_name, customer_phone, note, total, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [orderNumber, table_id, customer_id || null, customer_name, customer_phone, note, total, 'pending']
   );
   const orderId = orderResult.lastInsertRowid;
 
@@ -173,12 +209,18 @@ router.put('/:id/status', (req, res) => {
   if (status === 'paid' || status === 'cancelled') {
     const orderRows = query('SELECT table_id FROM orders WHERE id = ?', [req.params.id]);
     if (orderRows.length) {
-      const activeOrders = query(
-        "SELECT id FROM orders WHERE table_id = ? AND status NOT IN ('paid','cancelled')",
-        [orderRows[0].table_id]
-      );
-      if (!activeOrders.length) {
-        run("UPDATE tables SET status = 'available' WHERE id = ?", [orderRows[0].table_id]);
+      // ALWAYS unlock the table and make it available on cancellation
+      if (status === 'cancelled') {
+        run("UPDATE tables SET locked_by = NULL, locked_by_name = '', locked_by_phone = '', status = 'available' WHERE id = ?", [orderRows[0].table_id]);
+      } else {
+        // For paid, check if any other active orders exist
+        const activeOrders = query(
+          "SELECT id FROM orders WHERE table_id = ? AND id != ? AND status NOT IN ('paid','cancelled')",
+          [orderRows[0].table_id, req.params.id]
+        );
+        if (!activeOrders.length) {
+          run("UPDATE tables SET locked_by = NULL, locked_by_name = '', locked_by_phone = '', status = 'available' WHERE id = ?", [orderRows[0].table_id]);
+        }
       }
     }
   }

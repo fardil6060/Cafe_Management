@@ -26,11 +26,10 @@ function dateFilters(req) {
 
 function saleByOrder(orderId) {
   return query(
-    `SELECT s.*, COALESCE(t.name, 'Deleted table') AS table_name, c.name AS customer_name
+    `SELECT s.*, COALESCE(t.name, 'Deleted table') AS table_name, o.customer_name
      FROM sales s
      LEFT JOIN orders o ON o.id = s.order_id
      LEFT JOIN tables t ON t.id = o.table_id
-     LEFT JOIN customers c ON c.id = s.customer_id
      WHERE s.order_id = ?`,
     [orderId]
   )[0];
@@ -69,13 +68,40 @@ router.post('/confirm', (req, res) => {
     return res.status(400).json({ error: 'Cancelled orders cannot be paid' });
   }
 
-  if (customerId && !query('SELECT id FROM customers WHERE id = ?', [customerId]).length) {
-    return res.status(404).json({ error: 'Customer not found' });
+  // If no customer_id provided, create one from order's customer info
+  let finalCustomerId = customerId;
+  if (!finalCustomerId && order.customer_id) {
+    finalCustomerId = order.customer_id;
+  }
+
+  // Create/update customer record with name and phone from order
+  if (finalCustomerId && (order.customer_name || order.customer_phone)) {
+    const existingCustomer = query('SELECT * FROM customers WHERE id = ?', [finalCustomerId])[0];
+    if (existingCustomer) {
+      // Update existing customer
+      run(
+        `UPDATE customers 
+         SET name = COALESCE(?, name),
+             phone = COALESCE(?, phone),
+             visit_count = visit_count + 1,
+             total_spent = total_spent + ?,
+             last_visit = datetime('now')
+         WHERE id = ?`,
+        [order.customer_name, order.customer_phone, order.total, finalCustomerId]
+      );
+    } else {
+      // Create new customer
+      run(
+        `INSERT INTO customers (name, phone, visit_count, total_spent, last_visit)
+         VALUES (?, ?, 1, ?, datetime('now'))`,
+        [order.customer_name, order.customer_phone, order.total]
+      );
+    }
   }
 
   const result = run(
     'INSERT INTO sales (order_id, customer_id, total) VALUES (?, ?, ?)',
-    [orderId, customerId, order.total]
+    [orderId, finalCustomerId, order.total]
   );
 
   run(
@@ -83,18 +109,9 @@ router.post('/confirm', (req, res) => {
     [orderId]
   );
 
-  if (customerId) {
-    run(
-      `UPDATE customers
-       SET visit_count = visit_count + 1,
-           total_spent = total_spent + ?,
-           last_visit = datetime('now')
-       WHERE id = ?`,
-      [order.total, customerId]
-    );
-  }
-
-  refreshTableStatus(order.table_id);
+  // Unlock the table when payment is confirmed and clear customer info
+  run("UPDATE tables SET locked_by = NULL, locked_by_name = '', locked_by_phone = '', status = 'available' WHERE id = ?", [order.table_id]);
+  
   res.status(201).json({ success: true, sale: saleByOrder(orderId), sale_id: result.lastInsertRowid });
 });
 

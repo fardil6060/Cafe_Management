@@ -144,7 +144,7 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="item-id" value="" />
-      <div class="form-img-preview" id="img-preview">☕</div>
+      <div class="form-img-preview" id="img-preview">No image</div>
       <div class="form-row cols-2">
         <div class="field-group">
           <label>Name (English) *</label>
@@ -176,8 +176,9 @@
         </div>
       </div>
       <div class="field-group">
-        <label>Image URL (optional)</label>
-        <input type="url" id="item-image" placeholder="https://..." oninput="previewImage(this.value)" />
+        <label>Photo URL or Upload</label>
+        <input type="text" id="item-image" placeholder="https://... or select a file" oninput="previewImage(this.value)" />
+        <input type="file" id="item-image-file" accept="image/*" onchange="handleImageFile(this.files)" style="margin-top:8px" />
       </div>
       <div class="stock-row">
         <label class="track-stock-toggle">
@@ -297,8 +298,8 @@
     <div class="item-card ${!item.is_available?'unavailable':''}">
       <div class="item-img">
         ${item.image_url
-          ? `<img src="${item.image_url}" alt="${item.name_en}" onerror="this.parentElement.innerHTML='☕'" />`
-          : '☕'}
+          ? `<img src="${item.image_url}" alt="${item.name_en}" onerror="this.parentElement.innerHTML='No image'" />`
+          : 'No image'}
       </div>
       <div class="item-info">
         <div class="item-name-en">${item.name_en}</div>
@@ -307,13 +308,13 @@
       </div>
       <div class="item-foot">
         <div style="display:flex;align-items:center;gap:6px">
-          <button class="toggle-avail ${item.is_available?'on':'off'}"
-            onclick="toggleAvail(${item.id},${item.is_available})" title="${item.is_available?'Available':'Unavailable'}"></button>
+          <button type="button" class="toggle-avail ${item.is_available?'on':'off'}"
+            onclick="toggleAvail(event, ${item.id}, ${item.is_available})" title="${item.is_available?'Available':'Unavailable'}"></button>
           <span class="avail-label">${item.is_available?'Available':'Off menu'}</span>
         </div>
         <div class="item-foot-actions">
-          <button class="btn btn-secondary btn-sm" onclick="editItem(${item.id})">Edit</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteItem(${item.id})">Delete</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); editItem(${item.id})">Edit</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteItem(${item.id})">Delete</button>
         </div>
       </div>
     </div>`).join('');
@@ -333,6 +334,7 @@
     document.getElementById('item-desc-bn').value  = item?.description_bn || '';
     document.getElementById('item-price').value    = item?.price || '';
     document.getElementById('item-image').value    = item?.image_url || '';
+    document.getElementById('item-image-file').value = '';
     document.getElementById('item-stock-qty').value= item?.stock_qty || 0;
     document.getElementById('item-track-stock').checked = !!item?.track_stock;
     document.getElementById('item-modal-title').textContent = item ? 'Edit Item' : 'Add Item';
@@ -345,8 +347,20 @@
   function previewImage(url) {
     const el = document.getElementById('img-preview');
     el.innerHTML = url
-      ? `<img src="${url}" alt="preview" onerror="this.parentElement.innerHTML='☕'" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-sm)" />`
-      : '☕';
+      ? `<img src="${url}" alt="preview" onerror="this.parentElement.innerHTML='No image'" style="width:100%;height:100%;object-fit:cover;border-radius:var(--radius-sm)" />`
+      : 'No image';
+  }
+
+  function handleImageFile(files) {
+    if (!files || !files[0]) return;
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      const imageData = reader.result;
+      document.getElementById('item-image').value = imageData;
+      previewImage(imageData);
+    };
+    reader.readAsDataURL(file);
   }
 
   function toggleStockField() {
@@ -390,9 +404,10 @@
     } catch (err) { showToast(err.message, 'error'); }
   }
 
-  async function toggleAvail(id, current) {
+  async function toggleAvail(event, id, current) {
+    event.stopPropagation();
     try {
-      await apiPut(`/api/inventory/${id}/availability`, { is_available: current ? 0 : 1 });
+      await apiPut(`/api/menu/items/${id}/availability`, { is_available: current ? 0 : 1 });
       await load();
     } catch (err) { showToast(err.message, 'error'); }
   }

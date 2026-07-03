@@ -38,6 +38,11 @@
       font-size:11px; color:var(--amber); background:var(--amber-bg);
       border-radius:4px; padding:2px 8px;
     }
+    .order-customer-tag {
+      font-size:11px; color:var(--blue); background:var(--blue-bg);
+      border-radius:4px; padding:2px 8px;
+      font-weight:600;
+    }
     .order-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .order-items-list { padding:14px 18px; display:flex; flex-direction:column; gap:6px; }
     .order-item-row { display:flex; justify-content:space-between; font-size:13.5px; }
@@ -214,10 +219,11 @@
     <div class="order-card ${isPending ? 'is-pending' : ''}" id="order-card-${order.id}">
       <div class="order-card-head">
         <div class="order-meta">
-          <span class="order-num">#${order.id}</span>
+          <span class="order-num">#${order.order_number || order.id}</span>
           <span class="order-table-tag">${order.table_name}</span>
           ${statusBadge(order.status)}
           <span class="order-time">${formatTime(order.created_at)}</span>
+          ${order.customer_name ? `<span class="order-customer-tag">👤 ${order.customer_name} ${order.customer_phone ? '(' + order.customer_phone + ')' : ''}</span>` : ''}
           ${order.note ? `<span class="order-note-tag">📝 ${order.note}</span>` : ''}
         </div>
         <div class="order-actions">
@@ -248,7 +254,7 @@
     const next = flow[idx + 1];
     if (!next) return '';
 
-    const labels = { preparing:'Mark Preparing', ready:'Mark Ready', served:'Mark Served' };
+    const labels = { preparing:'Order Accepted', ready:'Mark Ready', served:'Mark Served' };
     const cls    = { preparing:'step-preparing', ready:'step-ready', served:'step-served' };
 
     return `<button class="step-btn ${cls[next]}" onclick="updateStatus(${order.id},'${next}')">${labels[next]}</button>`;

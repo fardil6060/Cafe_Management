@@ -647,6 +647,92 @@ html, body {
   color: var(--text-2);
 }
 
+.customer-info-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100dvh;
+  text-align: center;
+  padding: 32px;
+  gap: 20px;
+}
+
+.customer-info-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 4px;
+}
+
+.customer-info-header p {
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.customer-info-box form {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.customer-info-box .field-group {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.customer-info-box label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.customer-info-box input {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-size: 15px;
+  font-family: var(--font-en);
+  background: var(--surface);
+  color: var(--text-1);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.customer-info-box input:focus {
+  border-color: var(--brand);
+}
+
+.customer-info-box .login-error {
+  color: #DC2626;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.btn-continue {
+  width: 100%;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-en);
+  transition: background 0.15s;
+  margin-top: 4px;
+}
+
+.btn-continue:hover { background: var(--brand-dark); }
+.btn-continue:disabled { background: var(--text-3); cursor: default; }
+
 .bn * {
   font-family: var(--font-bn) !important;
 }

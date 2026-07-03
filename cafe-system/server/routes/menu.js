@@ -14,6 +14,13 @@ function toPrice(value) {
 
 function boolInt(value, fallback = 0) {
   if (value === undefined || value === null || value === '') return fallback;
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === '0' || normalized === 'false' || normalized === 'no') return 0;
+    if (normalized === '1' || normalized === 'true' || normalized === 'yes') return 1;
+  }
+
   return value ? 1 : 0;
 }
 
@@ -173,6 +180,19 @@ router.put('/items/:id', (req, res) => {
     [categoryId, nameEn, nameBn, descriptionEn, descriptionBn, price, imageUrl, isAvailable, stockQty, trackStock, id]
   );
 
+  res.json(getItem(id));
+});
+
+router.put('/items/:id/availability', (req, res) => {
+  const id = toInt(req.params.id);
+  const item = getItem(id);
+
+  if (!item) {
+    return res.status(404).json({ error: 'Item not found' });
+  }
+
+  const isAvailable = boolInt(req.body.is_available, item.is_available);
+  run('UPDATE menu_items SET is_available = ? WHERE id = ?', [isAvailable, id]);
   res.json(getItem(id));
 });
 

@@ -159,6 +159,11 @@
             <span class="panel-title">Orders ready for payment</span>
             <span class="text-sm text-muted" id="bills-count"></span>
           </div>
+          <div style="margin-bottom:12px">
+            <input type="text" id="payment-search" placeholder="Search by order # or phone number..." 
+              style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);outline:none"
+              oninput="handlePaymentSearch(this.value)" />
+          </div>
           <div class="bill-cards" id="bill-cards">
             <div class="empty-bills">Loading...</div>
           </div>
@@ -259,7 +264,7 @@
     return `
     <div class="bill-card ${isActive ? 'active' : ''}" onclick="selectOrder(${order.id})">
       <div class="bill-card-head">
-        <span class="bill-card-title">${order.table_name} — #${order.id}</span>
+        <span class="bill-card-title">${order.table_name} — #${order.order_number || order.id}</span>
         ${statusBadge(order.status)}
       </div>
       <div class="bill-card-body">
@@ -269,6 +274,7 @@
             <span class="bill-line-price">${taka(i.price * i.quantity)}</span>
           </div>`).join('')}
         ${order.note ? `<div style="font-size:12px;color:var(--text-3);margin-top:4px">📝 ${order.note}</div>` : ''}
+        ${order.customer_name ? `<div style="font-size:12px;color:var(--blue);margin-top:4px;font-weight:600">👤 ${order.customer_name} ${order.customer_phone ? '(' + order.customer_phone + ')' : ''}</div>` : ''}
       </div>
       <div class="bill-card-foot">
         <span class="text-sm text-muted">${formatTime(order.created_at)}</span>
@@ -288,7 +294,7 @@
     document.getElementById('receipt-no-selection').classList.add('hidden');
     document.getElementById('receipt-content').classList.remove('hidden');
 
-    document.getElementById('r-order-id').textContent = `#${order.id}`;
+    document.getElementById('r-order-id').textContent = `#${order.order_number || order.id}`;
     document.getElementById('r-table').textContent = order.table_name;
     document.getElementById('r-time').textContent = formatDateTime(order.created_at);
     document.getElementById('r-total').textContent = taka(order.total);
@@ -300,8 +306,26 @@
         <span style="font-weight:600">${taka(i.price * i.quantity)}</span>
       </div>`).join('');
 
-    document.getElementById('customer-name').value  = '';
-    document.getElementById('customer-phone').value = '';
+    // Show customer info if available from order
+    const nameInput = document.getElementById('customer-name');
+    const phoneInput = document.getElementById('customer-phone');
+    
+    if (order.customer_name || order.customer_phone) {
+      nameInput.value = order.customer_name || '';
+      phoneInput.value = order.customer_phone || '';
+      nameInput.readOnly = true;
+      phoneInput.readOnly = true;
+      nameInput.style.background = 'var(--surface-2)';
+      phoneInput.style.background = 'var(--surface-2)';
+    } else {
+      nameInput.value = '';
+      phoneInput.value = '';
+      nameInput.readOnly = false;
+      phoneInput.readOnly = false;
+      nameInput.style.background = 'var(--surface)';
+      phoneInput.style.background = 'var(--surface)';
+    }
+    
     document.getElementById('btn-confirm-pay').disabled = false;
   }
 
@@ -313,13 +337,18 @@
     btn.textContent = 'Processing...';
 
     try {
-      const name  = document.getElementById('customer-name').value.trim();
-      const phone = document.getElementById('customer-phone').value.trim();
-
-      let customerId = null;
-      if (name || phone) {
-        const cust = await apiPost('/api/customers', { name, phone });
-        customerId = cust.id;
+      // Use customer_id from order if available, otherwise create from form
+      let customerId = selectedOrder.customer_id || null;
+      
+      // If no customer on order but form has data, create customer
+      if (!customerId) {
+        const name  = document.getElementById('customer-name').value.trim();
+        const phone = document.getElementById('customer-phone').value.trim();
+        
+        if (name || phone) {
+          const cust = await apiPost('/api/customers', { name, phone });
+          customerId = cust.id;
+        }
       }
 
       await apiPost('/api/sales/confirm', {
@@ -343,6 +372,25 @@
 
   loadBills();
   setInterval(loadBills, 20000);
+
+  let searchTimeout = null;
+  async function handlePaymentSearch(query) {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    
+    if (!query || query.length < 2) {
+      renderBills(allBills);
+      return;
+    }
+
+    searchTimeout = setTimeout(async () => {
+      try {
+        const results = await apiGet(`/api/orders/search?q=${encodeURIComponent(query)}`);
+        renderBills(results);
+      } catch (err) {
+        console.error('Search failed:', err);
+      }
+    }, 300);
+  }
 </script>
 </body>
 </html>

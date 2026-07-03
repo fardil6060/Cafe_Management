@@ -60,6 +60,9 @@ function createSchema() {
       qr_token   TEXT UNIQUE NOT NULL,
       seat_count INTEGER DEFAULT 4,
       status     TEXT DEFAULT 'available',
+      locked_by  INTEGER DEFAULT NULL,
+      locked_by_name TEXT DEFAULT '',
+      locked_by_phone TEXT DEFAULT '',
       created_at TEXT DEFAULT (datetime('now'))
     );
   `);
@@ -67,7 +70,11 @@ function createSchema() {
   db.run(`
     CREATE TABLE IF NOT EXISTS orders (
       id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_number TEXT UNIQUE NOT NULL,
       table_id     INTEGER NOT NULL,
+      customer_id  INTEGER,
+      customer_name TEXT DEFAULT '',
+      customer_phone TEXT DEFAULT '',
       status       TEXT DEFAULT 'pending',
       note         TEXT DEFAULT '',
       total        REAL DEFAULT 0,
@@ -76,6 +83,9 @@ function createSchema() {
       FOREIGN KEY (table_id) REFERENCES tables(id)
     );
   `);
+
+  // Migrate existing database - add missing columns
+  migrateDB();
 
   db.run(`
     CREATE TABLE IF NOT EXISTS order_items (
@@ -127,6 +137,72 @@ function createSchema() {
   createIndexes();
 }
 
+function migrateDB() {
+  // Add customer_id to orders if it doesn't exist
+  try {
+    const orderColumns = db.exec("PRAGMA table_info(orders)");
+    const hasCustomerId = orderColumns[0]?.values.some(col => col[1] === 'customer_id');
+    
+    if (!hasCustomerId) {
+      db.run('ALTER TABLE orders ADD COLUMN customer_id INTEGER');
+      console.log('[DB] Migration: Added customer_id to orders table');
+    }
+  } catch (err) {
+    console.error('[DB] Migration error (orders):', err.message);
+  }
+
+  // Add order_number to orders if it doesn't exist
+  try {
+    const orderColumns = db.exec("PRAGMA table_info(orders)");
+    const hasOrderNumber = orderColumns[0]?.values.some(col => col[1] === 'order_number');
+    
+    if (!hasOrderNumber) {
+      db.run('ALTER TABLE orders ADD COLUMN order_number TEXT');
+      console.log('[DB] Migration: Added order_number to orders table');
+    }
+  } catch (err) {
+    console.error('[DB] Migration error (order_number):', err.message);
+  }
+
+  // Add locked_by to tables if it doesn't exist
+  try {
+    const tableColumns = db.exec("PRAGMA table_info(tables)");
+    const hasLockedBy = tableColumns[0]?.values.some(col => col[1] === 'locked_by');
+    
+    if (!hasLockedBy) {
+      db.run('ALTER TABLE tables ADD COLUMN locked_by INTEGER DEFAULT NULL');
+      console.log('[DB] Migration: Added locked_by to tables table');
+    }
+  } catch (err) {
+    console.error('[DB] Migration error (tables):', err.message);
+  }
+
+  // Add locked_by_name and locked_by_phone to tables if they don't exist
+  try {
+    const tableColumns = db.exec("PRAGMA table_info(tables)");
+    const hasLockedByName = tableColumns[0]?.values.some(col => col[1] === 'locked_by_name');
+    
+    if (!hasLockedByName) {
+      db.run('ALTER TABLE tables ADD COLUMN locked_by_name TEXT DEFAULT ""');
+      console.log('[DB] Migration: Added locked_by_name to tables table');
+    }
+  } catch (err) {
+    console.error('[DB] Migration error (locked_by_name):', err.message);
+  }
+  
+  try {
+    const tableColumns = db.exec("PRAGMA table_info(tables)");
+    const hasLockedByPhone = tableColumns[0]?.values.some(col => col[1] === 'locked_by_phone');
+    
+    if (!hasLockedByPhone) {
+      db.run('ALTER TABLE tables ADD COLUMN locked_by_phone TEXT DEFAULT ""');
+      console.log('[DB] Migration: Added locked_by_phone to tables table');
+    }
+  } catch (err) {
+    console.error('[DB] Migration error (locked_by_phone):', err.message);
+  }
+}
+
 function createIndexes() {
   db.run('CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)');
   db.run('CREATE INDEX IF NOT EXISTS idx_orders_table_status ON orders(table_id, status)');
@@ -136,6 +212,15 @@ function createIndexes() {
   db.run('CREATE INDEX IF NOT EXISTS idx_sales_paid_at ON sales(paid_at)');
   db.run('CREATE INDEX IF NOT EXISTS idx_sales_order_id ON sales(order_id)');
   db.run('CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)');
+}
+
+function generateOrderNumber() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed confusing chars like 0, O, 1, I
+  let result = '';
+  for (let i = 0; i < 5; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }
 
 function seedDefaults() {
@@ -217,4 +302,4 @@ function run(sql, params = []) {
   }
 }
 
-module.exports = { initDB, getDB, query, run, saveDB };
+module.exports = { initDB, getDB, query, run, saveDB, generateOrderNumber };

@@ -147,6 +147,32 @@
   </div>
 </div>
 
+<!-- Edit Table Modal -->
+<div class="modal-backdrop hidden" id="edit-table-modal" onclick="closeModalOnBackdrop(event,'edit-table-modal')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Edit Table</span>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('edit-table-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="add-table-form">
+        <div class="field-group">
+          <label>Table Name</label>
+          <input type="text" id="edit-table-name" placeholder="e.g. Table 11" />
+        </div>
+        <div class="field-group">
+          <label>Seat Count</label>
+          <input type="number" id="edit-table-seats" value="4" min="1" max="20" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('edit-table-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTableEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <div id="admin-toast"></div>
 <script src="/js/core.js"></script>
 <script>
@@ -186,6 +212,7 @@
       <img class="qr-preview" src="" alt="QR" id="qr-thumb-${t.id}"
         onclick="openQRModal(${t.id})" title="Click to view full QR" />
       <div class="table-card-actions">
+        <button class="btn btn-secondary btn-sm" onclick="editTable(${t.id},'${t.name}',${t.seat_count})">Edit</button>
         ${!isOccupied ? `<button class="btn btn-primary btn-sm" onclick="bookTable(${t.id},'${t.name}')">Book Table</button>` : `<button class="btn btn-danger btn-sm" onclick="unlockTable(${t.id},'${t.name}')">Unlock</button>`}
         <button class="btn btn-secondary btn-sm" onclick="openQRModal(${t.id})">View QR</button>
         <button class="btn btn-danger btn-sm" onclick="deleteTable(${t.id},'${t.name}')">Delete</button>
@@ -289,6 +316,31 @@
         showToast(err.message || 'Failed to unlock table', 'error');
       }
     });
+  }
+
+  let editingTableId = null;
+
+  function editTable(tableId, tableName, seatCount) {
+    editingTableId = tableId;
+    document.getElementById('edit-table-name').value = tableName;
+    document.getElementById('edit-table-seats').value = seatCount;
+    openModal('edit-table-modal');
+  }
+
+  async function saveTableEdit() {
+    const name = document.getElementById('edit-table-name').value.trim();
+    const seats = parseInt(document.getElementById('edit-table-seats').value) || 4;
+    
+    if (!name) return showToast('Table name is required', 'error');
+    
+    try {
+      await apiPut(`/api/tables/${editingTableId}`, { name, seat_count: seats });
+      showToast('Table updated', 'success');
+      closeModal('edit-table-modal');
+      await loadTables();
+    } catch (err) {
+      showToast(err.message || 'Failed to update table', 'error');
+    }
   }
 
   loadTables().then(() => loadQRThumbs());

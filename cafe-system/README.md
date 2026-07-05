@@ -9,7 +9,7 @@ Server runs at: http://localhost:3000
 
 ## Default Login
 - Username: admin
-- Password: admin123
+- Password: admin1234
 
 ## Project Structure
 ```

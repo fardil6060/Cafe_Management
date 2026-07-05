@@ -226,8 +226,8 @@ function generateOrderNumber() {
 function seedDefaults() {
   const adminExists = db.exec("SELECT id FROM admin_users WHERE username = 'admin'");
   if (!adminExists[0]) {
-    db.run("INSERT INTO admin_users (username, password) VALUES ('admin', 'admin123')");
-    console.log('[DB] Default admin created: admin / admin123');
+    db.run("INSERT INTO admin_users (username, password) VALUES ('admin', 'admin1234')");
+    console.log('[DB] Default admin created: admin / admin1234');
   }
 
   const tablesExist = db.exec("SELECT id FROM tables LIMIT 1");

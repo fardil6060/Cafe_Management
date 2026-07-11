@@ -1,12 +1,11 @@
-
-const API   = '';
-let lang    = 'en';
+const API = '';
+let lang = 'en';
 let tableId = null;
 let tableToken = null;
 let customerId = null;
 let customerName = '';
 let customerPhone = '';
-let cart    = {};
+let cart = {};
 let menuData = [];
 let activeCat = null;
 let modalItem = null;
@@ -31,7 +30,6 @@ async function init() {
     document.getElementById('table-name-display').textContent = table.name;
     
     // ALWAYS show customer info form first (no localStorage bypass)
-    // The form will handle verification if table is locked
     document.getElementById('customer-info-screen').classList.remove('hidden');
     
     // Store table lock status for verification
@@ -46,8 +44,6 @@ async function init() {
 function showInvalid() {
   document.getElementById('invalid-screen').classList.remove('hidden');
 }
-
-// Removed - no longer using showTableLocked since we always show the form
 
 async function handleCustomerInfo(e) {
   e.preventDefault();
@@ -85,8 +81,7 @@ async function handleCustomerInfo(e) {
 
   try {
     // Don't create customer record yet - just store temp info
-    // Customer will be created/updated only on successful payment
-    customerId = null; // Will be set on payment
+    customerId = null;
     customerName = name;
     customerPhone = phone;
 
@@ -97,7 +92,6 @@ async function handleCustomerInfo(e) {
       
       // If the same person is trying to access (matching name AND phone), let them in
       if (name === lockedName && phone === lockedPhone) {
-        // Same customer returning - allow access
         customerName = name;
         customerPhone = phone;
         document.getElementById('customer-info-screen').classList.add('hidden');
@@ -118,7 +112,7 @@ async function handleCustomerInfo(e) {
       return;
     }
 
-    // Lock the table - store name/phone directly (NO customer record created)
+    // Lock the table
     try {
       const lockRes = await fetch(`${API}/api/tables/${tableId}/lock`, {
         method: 'POST',
@@ -140,7 +134,6 @@ async function handleCustomerInfo(e) {
     }
 
     // Auto-unlock on page close - but only if NO order was placed
-    // Server-side check ensures table with orders stays locked
     window.__hasOrdered = false;
     window.__unlockOnLeave = function() {
       try {
@@ -154,10 +147,10 @@ async function handleCustomerInfo(e) {
     };
     window.addEventListener('beforeunload', window.__unlockOnLeave);
 
-    // Clear any old localStorage data (fresh start each time)
+    // Clear any old localStorage data
     localStorage.removeItem(`cafe_customer_${tableToken}`);
 
-    // Hide customer info screen and show app
+    // Hide customer info screen and show app with animation
     document.getElementById('customer-info-screen').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
     
@@ -182,6 +175,7 @@ async function loadMenu() {
     renderMenuGrid();
   } catch (e) {
     console.error('Menu load failed', e);
+    showToast(lang === 'en' ? 'Failed to load menu' : 'মেনু লোড করতে ব্যর্থ');
   }
 }
 
@@ -192,7 +186,13 @@ function renderCategoryTabs() {
   const allBtn = document.createElement('button');
   allBtn.className = 'cat-tab' + (activeCat === null ? ' active' : '');
   allBtn.textContent = t('All', 'সব');
-  allBtn.onclick = () => { activeCat = null; renderCategoryTabs(); renderMenuGrid(); };
+  allBtn.onclick = () => { 
+    activeCat = null; 
+    renderCategoryTabs(); 
+    renderMenuGrid();
+    // Smooth scroll to menu
+    document.getElementById('menu-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   container.appendChild(allBtn);
 
   menuData.forEach(cat => {
@@ -200,7 +200,13 @@ function renderCategoryTabs() {
     const btn = document.createElement('button');
     btn.className = 'cat-tab' + (activeCat === cat.id ? ' active' : '');
     btn.textContent = lang === 'en' ? cat.name_en : cat.name_bn;
-    btn.onclick = () => { activeCat = cat.id; renderCategoryTabs(); renderMenuGrid(); };
+    btn.onclick = () => { 
+      activeCat = cat.id; 
+      renderCategoryTabs(); 
+      renderMenuGrid();
+      // Smooth scroll to menu
+      document.getElementById('menu-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
     container.appendChild(btn);
   });
 }
@@ -212,6 +218,14 @@ function renderMenuGrid() {
   const filtered = activeCat
     ? menuData.filter(c => c.id === activeCat)
     : menuData;
+
+  if (!filtered.length) {
+    grid.innerHTML = `
+      <div class="no-orders" style="padding: 40px 20px;">
+        <p>${t('No items in this category', 'এই ক্যাটাগরিতে কোনো আইটেম নেই')}</p>
+      </div>`;
+    return;
+  }
 
   filtered.forEach(cat => {
     if (!cat.items.length) return;
@@ -239,7 +253,9 @@ function renderMenuGrid() {
 function buildItemCard(item) {
   const card = document.createElement('div');
   card.className = 'item-card' + (!item.is_available ? ' unavailable' : '');
-  card.onclick = () => openModal(item);
+  card.onclick = () => {
+    if (item.is_available) openModal(item);
+  };
 
   const imgWrap = document.createElement('div');
   imgWrap.className = 'item-img-wrap';
@@ -248,10 +264,21 @@ function buildItemCard(item) {
     const img = document.createElement('img');
     img.src = item.image_url;
     img.alt = item.name_en;
-    img.onerror = () => { imgWrap.innerHTML = '<div class="item-img-placeholder">No image</div>'; };
+    img.loading = 'lazy';
+    img.onerror = () => { 
+      imgWrap.innerHTML = '<div class="item-img-placeholder">🍽️</div>'; 
+    };
     imgWrap.appendChild(img);
   } else {
-    imgWrap.innerHTML = '<div class="item-img-placeholder">No image</div>';
+    imgWrap.innerHTML = '<div class="item-img-placeholder">🍽️</div>';
+  }
+
+  // Add NOT AVAILABLE overlay only for unavailable items
+  if (!item.is_available) {
+    const notAvailableOverlay = document.createElement('div');
+    notAvailableOverlay.className = 'not-available-overlay';
+    notAvailableOverlay.textContent = t('NOT AVAILABLE', 'উপলব্ধ নয়');
+    imgWrap.appendChild(notAvailableOverlay);
   }
 
   const body = document.createElement('div');
@@ -270,15 +297,8 @@ function buildItemCard(item) {
   card.appendChild(imgWrap);
   card.appendChild(body);
 
-  if (!item.is_available) {
-    const badge = document.createElement('div');
-    badge.className = 'item-out-badge';
-    badge.textContent = t('Out of stock', 'স্টক শেষ');
-    card.appendChild(badge);
-  }
-
   const qty = cartQty(item.id);
-  if (qty > 0) {
+  if (qty > 0 && item.is_available) {
     const dot = document.createElement('div');
     dot.className = 'item-in-cart-dot';
     dot.textContent = qty;
@@ -306,6 +326,10 @@ function updateCartBadge() {
   if (count > 0) {
     badge.textContent = count;
     badge.classList.remove('hidden');
+    // Add bounce animation
+    badge.style.animation = 'none';
+    badge.offsetHeight; // Trigger reflow
+    badge.style.animation = 'bounce 0.3s';
   } else {
     badge.classList.add('hidden');
   }
@@ -317,26 +341,34 @@ function openModal(item) {
   const desc = lang === 'en' ? item.description_en : item.description_bn;
 
   document.getElementById('modal-name').textContent = name;
-  document.getElementById('modal-desc').textContent = desc || '';
+  document.getElementById('modal-desc').textContent = desc || t('No description', 'বর্ণনা নেই');
   document.getElementById('modal-price').textContent = `৳${item.price}`;
   document.getElementById('modal-qty').textContent = cartQty(item.id) || 1;
 
   const img = document.getElementById('modal-img');
-  img.src = item.image_url || '';
-  img.style.display = item.image_url ? 'block' : 'none';
+  if (item.image_url) {
+    img.src = item.image_url;
+    img.style.display = 'block';
+  } else {
+    img.style.display = 'none';
+  }
 
   document.getElementById('modal-overlay').classList.remove('hidden');
+  
+  // Prevent body scroll when modal is open
+  document.body.style.overflow = 'hidden';
 }
 
 function closeModal() {
   document.getElementById('modal-overlay').classList.add('hidden');
+  document.body.style.overflow = '';
   modalItem = null;
 }
 
 function modalQtyChange(delta) {
   const el = document.getElementById('modal-qty');
   const current = parseInt(el.textContent) || 1;
-  const next = Math.max(1, current + delta);
+  const next = Math.max(1, Math.min(99, current + delta));
   el.textContent = next;
 }
 
@@ -376,8 +408,8 @@ function changeCartQty(itemId, delta) {
 
 function renderCart() {
   const container = document.getElementById('cart-items');
-  const totalEl   = document.getElementById('cart-total-display');
-  const placeBtn  = document.getElementById('btn-place-order');
+  const totalEl = document.getElementById('cart-total-display');
+  const placeBtn = document.getElementById('btn-place-order');
   container.innerHTML = '';
 
   const entries = Object.values(cart);
@@ -385,7 +417,11 @@ function renderCart() {
   if (!entries.length) {
     container.innerHTML = `
       <div class="empty-cart">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="9" cy="21" r="1"/>
+          <circle cx="20" cy="21" r="1"/>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+        </svg>
         <p>${t('No items yet. Browse the menu to add items.', 'এখনো কিছু যোগ হয়নি। মেনু থেকে আইটেম বেছে নিন।')}</p>
       </div>`;
     totalEl.textContent = '৳0';
@@ -411,6 +447,7 @@ function renderCart() {
     const minus = document.createElement('button');
     minus.textContent = '−';
     minus.onclick = () => changeCartQty(entry.id, -1);
+    minus.setAttribute('aria-label', 'Decrease quantity');
 
     const num = document.createElement('span');
     num.className = 'cart-qty-num';
@@ -419,6 +456,7 @@ function renderCart() {
     const plus = document.createElement('button');
     plus.textContent = '+';
     plus.onclick = () => changeCartQty(entry.id, 1);
+    plus.setAttribute('aria-label', 'Increase quantity');
 
     ctrl.appendChild(minus);
     ctrl.appendChild(num);
@@ -446,7 +484,7 @@ async function placeOrder() {
   btn.querySelector('span').textContent = t('Placing order...', 'অর্ডার দেওয়া হচ্ছে...');
 
   const items = entries.map(e => ({ item_id: e.id, quantity: e.qty }));
-  const note  = document.getElementById('order-note').value.trim();
+  const note = document.getElementById('order-note').value.trim();
 
   try {
     const res = await fetch(`${API}/api/orders`, {
@@ -596,8 +634,30 @@ function showToast(msg) {
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     el.classList.remove('show');
-    setTimeout(() => el.classList.add('hidden'), 200);
-  }, 2800);
+    setTimeout(() => el.classList.add('hidden'), 300);
+  }, 3000);
 }
+
+// Close modal on overlay click
+document.addEventListener('DOMContentLoaded', () => {
+  const modalOverlay = document.getElementById('modal-overlay');
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        closeModal();
+      }
+    });
+  }
+  
+  // Add keyboard support for modal
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('modal-overlay');
+      if (!modal.classList.contains('hidden')) {
+        closeModal();
+      }
+    }
+  });
+});
 
 document.addEventListener('DOMContentLoaded', init);

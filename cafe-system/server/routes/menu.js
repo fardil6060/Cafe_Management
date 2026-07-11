@@ -40,7 +40,6 @@ router.get('/full', (req, res) => {
     `SELECT m.*, c.name_en AS category_name, c.name_bn AS category_name_bn
      FROM menu_items m
      LEFT JOIN categories c ON c.id = m.category_id
-     WHERE m.is_available = 1
      ORDER BY c.sort_order ASC, m.id ASC`
   );
 
